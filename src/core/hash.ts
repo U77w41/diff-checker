@@ -2,9 +2,9 @@ const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
 
 /**
- * Computes the 32-bit FNV-1a hash of a UTF-8 string, returning an 8-character lowercase hex string.
+ * Computes the 32-bit FNV-1a hash of a UTF-8 string, returning an unsigned 32-bit number.
  */
-export function fnv1a(str: string): string {
+export function fnv1a32(str: string): number {
   let hash = FNV_OFFSET_BASIS;
   for (let i = 0; i < str.length; i++) {
     const code = str.charCodeAt(i);
@@ -37,5 +37,12 @@ export function fnv1a(str: string): string {
       hash = Math.imul(hash, FNV_PRIME);
     }
   }
-  return (hash >>> 0).toString(16).padStart(8, '0');
+  return hash >>> 0;
+}
+
+/**
+ * Computes the 32-bit FNV-1a hash of a UTF-8 string, returning an 8-character lowercase hex string.
+ */
+export function fnv1a(str: string): string {
+  return fnv1a32(str).toString(16).padStart(8, '0');
 }
