@@ -15,6 +15,7 @@
   import NotebookView from './ui/nb-view/NotebookView.svelte';
   import ShareModal from './ui/ShareModal.svelte';
   import HelpModal from './ui/HelpModal.svelte';
+  import ToolsDropdown from './ui/ToolsDropdown.svelte';
   import { decodeSharePayload, type SharePayload } from './core/share';
   import { loadSettings, saveSettings, type StoredSettings } from './app/settings';
   import { DiffError } from './core/errors';
@@ -479,15 +480,22 @@
 
 <header class="site-header">
   <div class="container header-inner">
-    <a
-      class="brand"
-      href="https://u77w41.github.io/"
-      aria-label="Ujjwal Chowdhury, back to the main site"
-    >
-      <img class="brand-avatar" src="./assets/avatar.png" width="44" height="44" alt="" />
+    <a class="brand" href="./" aria-label="Diff Checker home">
+      <svg
+        class="brand-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 3L12 21M14.7107 19.3887C17.1796 18.8321 19.1072 16.979 19.6863 14.6058C20.1046 12.8918 20.1046 11.1081 19.6863 9.39419C19.1072 7.02094 17.1796 5.16789 14.7107 4.61121M12 4.30969C11.0904 4.30969 10.1808 4.41019 9.28927 4.61121C6.82045 5.16789 4.89278 7.02094 4.31367 9.39419C3.89544 11.1081 3.89544 12.8918 4.31367 14.6058C4.89278 16.979 6.82045 18.8321 9.28928 19.3887C10.1808 19.5898 11.0904 19.6903 12 19.6903"
+        />
+      </svg>
       <span class="brand-text">
-        <span class="brand-name">Ujjwal Chowdhury</span>
-        <span class="brand-tagline">Data Scientist | AI Researcher | Building for Bharat</span>
+        <span class="brand-name">Diff Checker</span>
       </span>
     </a>
 
@@ -549,24 +557,7 @@
           </a>
         </li>
         <li>
-          <a class="nav-text-desktop" href="https://u77w41.github.io/anurup/" aria-label="Anurup">
-            <svg
-              class="nav-icon"
-              viewBox="100 100 800 800"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="64"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M 280 200 H 740 A 60 60 0 0 1 800 260 V 640 A 60 60 0 0 1 740 700 H 650" />
-              <path
-                d="M 200 270 V 740 A 60 60 0 0 0 260 800 H 610 A 40 40 0 0 0 650 760 V 380 A 30 30 0 0 0 620 350 H 380 A 30 30 0 0 0 350 380 V 440 A 75 75 0 0 0 500 440 V 350"
-              />
-            </svg>
-            <span class="nav-label">Anurup</span>
-          </a>
+          <ToolsDropdown />
         </li>
         <li class="mobile-hide">
           <a

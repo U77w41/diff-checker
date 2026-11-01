@@ -212,6 +212,7 @@ code,
 .site-header {
   background: var(--card-background);
   border-bottom: 1px solid var(--border);
+  position: relative;
 }
 
 .header-inner {
@@ -240,6 +241,13 @@ code,
   border-radius: 50%;
   box-shadow: var(--shadow-l1);
   flex-shrink: 0;
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--accent);
 }
 
 .brand-text {
