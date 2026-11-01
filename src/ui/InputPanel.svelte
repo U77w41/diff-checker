@@ -1,14 +1,19 @@
 <script lang="ts">
   import { decodeFileBuffer, DiffError } from '../core/file-reader';
+  import { fetchRemoteFile } from '../core/remote';
+  import { parseDiffBundle, type SharePayload } from '../core/share';
 
   interface InputPanelProps {
     textA: string;
     textB: string;
     fileNameA?: string;
     fileNameB?: string;
+    rememberInputs?: boolean;
     isDiffAvailable: boolean;
     onCompare: () => void;
     onLoadExample: () => void;
+    onLoadBundle?: (payload: SharePayload) => void;
+    onToggleRememberInputs?: (remember: boolean) => void;
   }
 
   let {
@@ -16,9 +21,12 @@
     textB = $bindable(),
     fileNameA = $bindable(),
     fileNameB = $bindable(),
+    rememberInputs = $bindable(false),
     isDiffAvailable = false,
     onCompare,
-    onLoadExample
+    onLoadExample,
+    onLoadBundle,
+    onToggleRememberInputs
   }: InputPanelProps = $props();
 
   let isCollapsed = $state(false);
@@ -26,6 +34,16 @@
   let errorB = $state<string | null>(null);
   let warningA = $state<string | null>(null);
   let warningB = $state<string | null>(null);
+
+  // URL Load states
+  let isUrlLoadingA = $state(false);
+  let isUrlLoadingB = $state(false);
+  let showUrlInputA = $state(false);
+  let showUrlInputB = $state(false);
+  let urlA = $state('');
+  let urlB = $state('');
+
+  let bundleFileInput: HTMLInputElement | undefined = $state();
 
   // Sync collapsed state when a diff becomes available
   $effect(() => {
@@ -72,6 +90,63 @@
       } else {
         errorB = msg;
       }
+    }
+  }
+
+  async function handleLoadFromUrl(side: 'A' | 'B') {
+    const targetUrl = side === 'A' ? urlA.trim() : urlB.trim();
+    if (!targetUrl) return;
+
+    if (side === 'A') {
+      isUrlLoadingA = true;
+      errorA = null;
+    } else {
+      isUrlLoadingB = true;
+      errorB = null;
+    }
+
+    try {
+      const res = await fetchRemoteFile(targetUrl);
+      if (side === 'A') {
+        textA = res.text;
+        fileNameA = res.fileName;
+        showUrlInputA = false;
+        urlA = '';
+      } else {
+        textB = res.text;
+        fileNameB = res.fileName;
+        showUrlInputB = false;
+        urlB = '';
+      }
+      onCompare();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (side === 'A') {
+        errorA = msg;
+      } else {
+        errorB = msg;
+      }
+    } finally {
+      if (side === 'A') isUrlLoadingA = false;
+      else isUrlLoadingB = false;
+    }
+  }
+
+  async function handleBundleFileChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const payload = parseDiffBundle(text);
+      if (onLoadBundle) {
+        onLoadBundle(payload);
+      }
+    } catch (err) {
+      errorA = err instanceof Error ? err.message : 'Invalid diff bundle file.';
+    } finally {
+      target.value = '';
     }
   }
 
@@ -147,22 +222,55 @@
               <span class="file-info">{fileNameA} ({formatBytes(textA.length)})</span>
             {/if}
           </label>
-          <div class="upload-btn-wrapper">
-            <label class="btn-secondary file-upload-label" for="file-upload-a">Upload file</label>
-            <input
-              id="file-upload-a"
-              type="file"
-              class="visually-hidden"
-              onchange={(e) => {
-                const target = e.currentTarget;
-                if (target.files?.[0]) handleFile(target.files[0], 'A');
-              }}
-            />
+          <div class="header-actions">
+            <button
+              type="button"
+              class="btn-secondary link-btn"
+              onclick={() => (showUrlInputA = !showUrlInputA)}
+              title="Load from remote URL (CORS supported)"
+            >
+              Load from URL
+            </button>
+            <div class="upload-btn-wrapper">
+              <label class="btn-secondary file-upload-label" for="file-upload-a">Upload file</label>
+              <input
+                id="file-upload-a"
+                type="file"
+                class="visually-hidden"
+                onchange={(e) => {
+                  const target = e.currentTarget;
+                  if (target.files?.[0]) handleFile(target.files[0], 'A');
+                }}
+              />
+            </div>
           </div>
         </div>
 
+        {#if showUrlInputA}
+          <div class="url-input-row">
+            <input
+              type="url"
+              class="url-field"
+              placeholder="https://raw.githubusercontent.com/... (CORS supported)"
+              bind:value={urlA}
+              onkeydown={(e) => e.key === 'Enter' && handleLoadFromUrl('A')}
+            />
+            <button
+              type="button"
+              class="btn-primary-sm"
+              disabled={isUrlLoadingA || !urlA.trim()}
+              onclick={() => handleLoadFromUrl('A')}
+            >
+              {isUrlLoadingA ? 'Loading...' : 'Load'}
+            </button>
+            <button type="button" class="btn-secondary-sm" onclick={() => (showUrlInputA = false)}>
+              Cancel
+            </button>
+          </div>
+        {/if}
+
         {#if errorA}
-          <div class="error-banner">{errorA}</div>
+          <div class="error-banner" role="alert">{errorA}</div>
         {/if}
         {#if warningA}
           <div class="warning-banner">{warningA}</div>
@@ -192,22 +300,55 @@
               <span class="file-info">{fileNameB} ({formatBytes(textB.length)})</span>
             {/if}
           </label>
-          <div class="upload-btn-wrapper">
-            <label class="btn-secondary file-upload-label" for="file-upload-b">Upload file</label>
-            <input
-              id="file-upload-b"
-              type="file"
-              class="visually-hidden"
-              onchange={(e) => {
-                const target = e.currentTarget;
-                if (target.files?.[0]) handleFile(target.files[0], 'B');
-              }}
-            />
+          <div class="header-actions">
+            <button
+              type="button"
+              class="btn-secondary link-btn"
+              onclick={() => (showUrlInputB = !showUrlInputB)}
+              title="Load from remote URL (CORS supported)"
+            >
+              Load from URL
+            </button>
+            <div class="upload-btn-wrapper">
+              <label class="btn-secondary file-upload-label" for="file-upload-b">Upload file</label>
+              <input
+                id="file-upload-b"
+                type="file"
+                class="visually-hidden"
+                onchange={(e) => {
+                  const target = e.currentTarget;
+                  if (target.files?.[0]) handleFile(target.files[0], 'B');
+                }}
+              />
+            </div>
           </div>
         </div>
 
+        {#if showUrlInputB}
+          <div class="url-input-row">
+            <input
+              type="url"
+              class="url-field"
+              placeholder="https://raw.githubusercontent.com/... (CORS supported)"
+              bind:value={urlB}
+              onkeydown={(e) => e.key === 'Enter' && handleLoadFromUrl('B')}
+            />
+            <button
+              type="button"
+              class="btn-primary-sm"
+              disabled={isUrlLoadingB || !urlB.trim()}
+              onclick={() => handleLoadFromUrl('B')}
+            >
+              {isUrlLoadingB ? 'Loading...' : 'Load'}
+            </button>
+            <button type="button" class="btn-secondary-sm" onclick={() => (showUrlInputB = false)}>
+              Cancel
+            </button>
+          </div>
+        {/if}
+
         {#if errorB}
-          <div class="error-banner">{errorB}</div>
+          <div class="error-banner" role="alert">{errorB}</div>
         {/if}
         {#if warningB}
           <div class="warning-banner">{warningB}</div>
@@ -228,9 +369,36 @@
         <button type="button" class="btn-secondary" onclick={handleSwap}>Swap (A↔B)</button>
         <button type="button" class="btn-secondary" onclick={handleClear}>Clear</button>
         <button type="button" class="btn-secondary" onclick={onLoadExample}>Try an example</button>
+        <button
+          type="button"
+          class="btn-secondary"
+          onclick={() => bundleFileInput?.click()}
+          title="Open a saved JSON diff bundle"
+        >
+          Open bundle...
+        </button>
+        <input
+          type="file"
+          accept=".json,application/json"
+          class="visually-hidden"
+          bind:this={bundleFileInput}
+          onchange={handleBundleFileChange}
+        />
       </div>
 
       <div class="footer-right">
+        <label
+          class="remember-label"
+          title="Preserve inputs in local storage across browser visits"
+        >
+          <input
+            type="checkbox"
+            checked={rememberInputs}
+            onchange={(e) => onToggleRememberInputs?.((e.target as HTMLInputElement).checked)}
+          />
+          <span>Remember inputs on this device</span>
+        </label>
+
         <button
           type="button"
           class="btn-primary"
@@ -269,6 +437,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .panel-title {
@@ -284,9 +454,70 @@
     margin-left: 6px;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .link-btn {
+    font-size: 13px;
+    padding: 4px 10px;
+    min-height: 44px;
+  }
+
   .file-upload-label {
     cursor: pointer;
     font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .url-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    background: var(--card-background-muted);
+    padding: 8px;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border);
+  }
+
+  .url-field {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    font-size: 13px;
+    min-height: 38px;
+    background: var(--card-background);
+    color: var(--text-main);
+  }
+
+  .btn-primary-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    min-height: 38px;
+  }
+
+  .btn-secondary-sm {
+    padding: 6px 10px;
+    font-size: 13px;
+    background: var(--card-background);
+    border: 1px solid var(--border-strong);
+    color: var(--text-main);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    min-height: 38px;
   }
 
   .text-input {
@@ -312,8 +543,10 @@
     padding: 8px 12px;
     border-radius: var(--radius-control);
     background: var(--danger-bg);
+    border: 1px solid var(--danger);
     color: var(--danger);
     font-size: 13.5px;
+    line-height: 1.4;
   }
 
   .warning-banner {
@@ -335,7 +568,33 @@
   .footer-left {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
+  }
+
+  .footer-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .remember-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    min-height: 44px;
+  }
+
+  .remember-label input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
   }
 
   .collapsed-bar {
@@ -369,6 +628,11 @@
   @media (max-width: 768px) {
     .panels-grid {
       grid-template-columns: 1fr;
+    }
+
+    .footer-right {
+      width: 100%;
+      justify-content: space-between;
     }
   }
 </style>

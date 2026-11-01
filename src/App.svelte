@@ -9,12 +9,14 @@
   import InputPanel from './ui/InputPanel.svelte';
   import Toolbar from './ui/Toolbar.svelte';
   import TextView from './ui/text-view/TextView.svelte';
-
-  let dark = $state(false);
   import { detectInputMode, type InputMode } from './core/detect';
   import type { NbDiffOptions, NotebookDiffResult } from './core/nb-diff/types';
   import { DEFAULT_NB_DIFF_OPTIONS } from './core/nb-diff/types';
   import NotebookView from './ui/nb-view/NotebookView.svelte';
+  import ShareModal from './ui/ShareModal.svelte';
+  import HelpModal from './ui/HelpModal.svelte';
+  import { decodeSharePayload, type SharePayload } from './core/share';
+  import { loadSettings, saveSettings, type StoredSettings } from './app/settings';
 
   const currentYear = new Date().getFullYear();
   const launchYear = 2026;
@@ -24,6 +26,7 @@
       : `© ${launchYear} – ${currentYear} Ujjwal Chowdhury`;
 
   // State
+  let dark = $state(false);
   let textA = $state('');
   let textB = $state('');
   let fileNameA = $state<string | undefined>(undefined);
@@ -44,6 +47,15 @@
   let currentChunk = $state(0);
   let slowWarning = $state(false);
 
+  // Settings & persistence
+  let rememberInputs = $state(false);
+  let storageError = $state<string | null>(null);
+  let shareBannerError = $state<string | null>(null);
+
+  // Modals
+  let isShareOpen = $state(false);
+  let isHelpOpen = $state(false);
+
   interface TextViewHandle {
     nextChange: () => void;
     prevChange: () => void;
@@ -52,14 +64,109 @@
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let progressTimer: ReturnType<typeof setTimeout> | null = null;
 
+  let currentSharePayload = $derived<SharePayload>({
+    mode: currentMode,
+    a: textA,
+    b: textB,
+    fileNameA,
+    fileNameB,
+    options:
+      currentMode === 'notebook'
+        ? (nbOptions as unknown as Record<string, unknown>)
+        : (options as unknown as Record<string, unknown>)
+  });
+
+  function persistSettings() {
+    const toStore: StoredSettings = {
+      mode: currentMode,
+      viewMode: viewMode === 'side-by-side' ? 'split' : 'unified',
+      granularity: options.granularity,
+      ignoreWhitespace: options.ignoreWhitespace,
+      ignoreCase: options.ignoreCase,
+      ignoreLineEndings: options.ignoreLineEndings,
+      ignoreBlankLines: options.ignoreBlankLines,
+      hideOutputs: !nbOptions.includeOutputs,
+      hideMetadata: nbOptions.hideNoisyMetadata,
+      showUnchanged: false,
+      similarityThreshold: nbOptions.similarityThreshold,
+      rememberInputs,
+      savedInputs: rememberInputs ? { textA, textB, fileNameA, fileNameB } : undefined
+    };
+
+    const res = saveSettings(toStore);
+    if (!res.success && rememberInputs) {
+      storageError = res.error || "Couldn't save inputs on this device";
+    } else {
+      storageError = null;
+    }
+  }
+
+  function handleHashChange() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#s=')) {
+      const decoded = decodeSharePayload(hash);
+      if (!decoded) {
+        shareBannerError = 'This share link is damaged';
+        textA = '';
+        textB = '';
+        fileNameA = undefined;
+        fileNameB = undefined;
+        diffResult = null;
+        nbDiffResult = null;
+      } else {
+        shareBannerError = null;
+        currentMode = decoded.mode;
+        textA = decoded.a;
+        textB = decoded.b;
+        fileNameA = decoded.fileNameA;
+        fileNameB = decoded.fileNameB;
+        if (decoded.options) {
+          if (decoded.mode === 'notebook') {
+            nbOptions = { ...nbOptions, ...(decoded.options as Partial<NbDiffOptions>) };
+          } else {
+            options = { ...options, ...(decoded.options as Partial<DiffOptions>) };
+          }
+        }
+        void runDiffNow();
+      }
+    } else if (hash === '#notebook') {
+      currentMode = 'notebook';
+    } else if (hash === '#text') {
+      currentMode = 'text';
+    }
+  }
+
   onMount(() => {
     dark = isDark();
     const cleanupTheme = initTheme();
 
-    // Check screen width for default mobile view mode
+    // Load persisted settings
+    const stored = loadSettings();
+    rememberInputs = stored.rememberInputs;
+    options.granularity = stored.granularity;
+    options.ignoreWhitespace = stored.ignoreWhitespace;
+    options.ignoreCase = stored.ignoreCase;
+    options.ignoreLineEndings = stored.ignoreLineEndings;
+    options.ignoreBlankLines = stored.ignoreBlankLines;
+    nbOptions.includeOutputs = !stored.hideOutputs;
+    nbOptions.hideNoisyMetadata = stored.hideMetadata;
+    nbOptions.similarityThreshold = stored.similarityThreshold;
+
     if (window.innerWidth < 768) {
       viewMode = 'unified';
+    } else {
+      viewMode = stored.viewMode === 'unified' ? 'unified' : 'side-by-side';
     }
+
+    if (stored.rememberInputs && stored.savedInputs) {
+      textA = stored.savedInputs.textA || '';
+      textB = stored.savedInputs.textB || '';
+      fileNameA = stored.savedInputs.fileNameA;
+      fileNameB = stored.savedInputs.fileNameB;
+    }
+
+    // Process initial hash route
+    handleHashChange();
 
     const handleResize = () => {
       if (window.innerWidth < 768 && viewMode === 'side-by-side') {
@@ -67,11 +174,15 @@
       }
     };
     window.addEventListener('resize', handleResize);
+    window.addEventListener('hashchange', handleHashChange);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore shortcuts if focus is in an input or textarea
-      const activeTag = document.activeElement?.tagName.toLowerCase();
-      if (activeTag === 'textarea' || activeTag === 'input') {
+      // Ignore shortcuts if focus is in an input, textarea, or contentEditable
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.matches('input, textarea, select, [contenteditable="true"]') ||
+        target?.closest('.cm-editor')
+      ) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
           e.preventDefault();
           runDiffNow();
@@ -79,7 +190,13 @@
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if (e.key === 'Escape') {
+        isHelpOpen = false;
+        isShareOpen = false;
+      } else if (e.key === '?') {
+        e.preventDefault();
+        isHelpOpen = true;
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         runDiffNow();
       } else if (e.key === 'n') {
@@ -91,6 +208,7 @@
       } else if (e.key === 'u') {
         e.preventDefault();
         viewMode = viewMode === 'side-by-side' ? 'unified' : 'side-by-side';
+        persistSettings();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -98,6 +216,7 @@
     return () => {
       cleanupTheme();
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('keydown', handleKeyDown);
     };
   });
@@ -113,6 +232,22 @@
     if (mainEl) {
       mainEl.focus();
     }
+  }
+
+  function handleLoadBundle(bundle: SharePayload) {
+    currentMode = bundle.mode;
+    textA = bundle.a;
+    textB = bundle.b;
+    fileNameA = bundle.fileNameA;
+    fileNameB = bundle.fileNameB;
+    if (bundle.options) {
+      if (bundle.mode === 'notebook') {
+        nbOptions = { ...nbOptions, ...(bundle.options as Partial<NbDiffOptions>) };
+      } else {
+        options = { ...options, ...(bundle.options as Partial<DiffOptions>) };
+      }
+    }
+    void runDiffNow();
   }
 
   // Detect language and mode when file names or contents change
@@ -141,6 +276,9 @@
     void nbOptions.includeOutputs;
     void nbOptions.hideNoisyMetadata;
     void nbOptions.similarityThreshold;
+    void rememberInputs;
+
+    persistSettings();
 
     if (textA.length > 0 || textB.length > 0) {
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -253,7 +391,9 @@
 <a class="skip-link" href="#main" onclick={handleSkipToContent}>Skip to content</a>
 
 <!-- Screen reader live region -->
-<div class="visually-hidden" aria-live="polite">{ariaAnnouncement}</div>
+<div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+  {ariaAnnouncement}
+</div>
 
 <header class="site-header">
   <div class="container header-inner">
@@ -466,6 +606,7 @@
           class="tab-btn {currentMode === 'text' ? 'active' : ''}"
           onclick={() => {
             currentMode = 'text';
+            window.location.hash = '#text';
             void runDiffNow();
           }}
         >
@@ -478,6 +619,7 @@
           class="tab-btn {currentMode === 'notebook' ? 'active' : ''}"
           onclick={() => {
             currentMode = 'notebook';
+            window.location.hash = '#notebook';
             void runDiffNow();
           }}
         >
@@ -486,15 +628,37 @@
       </div>
     </section>
 
+    {#if shareBannerError}
+      <div class="status-banner error" role="alert">
+        <span>⚠️ {shareBannerError}</span>
+        <button type="button" class="banner-close" onclick={() => (shareBannerError = null)}
+          >✕</button
+        >
+      </div>
+    {/if}
+
+    {#if storageError}
+      <div class="status-banner warning" role="alert">
+        <span>⚠️ {storageError}</span>
+        <button type="button" class="banner-close" onclick={() => (storageError = null)}>✕</button>
+      </div>
+    {/if}
+
     <!-- Input Panels -->
     <InputPanel
       bind:textA
       bind:textB
       bind:fileNameA
       bind:fileNameB
+      bind:rememberInputs
       isDiffAvailable={diffResult !== null || nbDiffResult !== null}
       onCompare={runDiffNow}
       onLoadExample={handleLoadExample}
+      onLoadBundle={handleLoadBundle}
+      onToggleRememberInputs={(val) => {
+        rememberInputs = val;
+        persistSettings();
+      }}
     />
   </div>
 
@@ -550,6 +714,8 @@
         onNextChange={handleNextChange}
         onCopyPatch={handleCopyPatch}
         onDownloadPatch={handleDownloadPatch}
+        onShare={() => (isShareOpen = true)}
+        onHelp={() => (isHelpOpen = true)}
       />
 
       <TextView
@@ -629,6 +795,15 @@
   </div>
 </footer>
 
+<!-- Modals -->
+<ShareModal
+  bind:isOpen={isShareOpen}
+  payload={currentSharePayload}
+  onLoadBundle={handleLoadBundle}
+/>
+
+<HelpModal bind:isOpen={isHelpOpen} />
+
 <style>
   .results-area {
     width: 100%;
@@ -678,6 +853,7 @@
     border-right: 1px solid var(--border);
     color: var(--text-muted);
     cursor: pointer;
+    min-height: 44px;
     transition:
       background 0.15s,
       color 0.15s;
@@ -690,6 +866,42 @@
   .tab-btn.active {
     background: var(--primary);
     color: var(--primary-contrast);
+  }
+
+  .status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: var(--radius-control);
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .status-banner.error {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+  }
+
+  .status-banner.warning {
+    background: rgba(234, 88, 12, 0.1);
+    border: 1px solid #c2410c;
+    color: #c2410c;
+  }
+
+  .banner-close {
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    color: inherit;
+    padding: 4px 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   @keyframes indeterminate {

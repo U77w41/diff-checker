@@ -1,9 +1,11 @@
+export type Granularity = 'word' | 'char';
+
 export interface DiffOptions {
   ignoreWhitespace: boolean; // collapse runs of spaces/tabs, trim line ends
   ignoreCase: boolean;
   ignoreLineEndings: boolean; // treat CRLF and LF as equal (default true)
   ignoreBlankLines: boolean;
-  granularity: 'word' | 'char'; // intra-line highlighting
+  granularity: Granularity; // intra-line highlighting
 }
 
 export const DEFAULT_DIFF_OPTIONS: DiffOptions = {
