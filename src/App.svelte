@@ -1005,9 +1005,14 @@
     border-right: none;
   }
 
+  .tab-btn:hover:not(.active) {
+    background: var(--card-background-muted);
+    color: var(--text-main);
+  }
+
   .tab-btn.active {
-    background: var(--primary);
-    color: var(--primary-contrast);
+    background: var(--accent);
+    color: var(--accent-text);
   }
 
   .status-banner {

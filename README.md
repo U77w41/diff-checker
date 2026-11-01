@@ -132,6 +132,6 @@ Contributions, bug reports, and suggestions are welcome!
 
 ## Licence & Attribution
 
-[MIT License](LICENSE) © 2026 Ujjwal Chowdhury.
+Copyright (c) 2026 Ujjwal Chowdhury. All rights reserved. See [LICENSE](LICENSE) for terms.
 
-Part of the open-source suite by [Ujjwal Chowdhury](https://u77w41.github.io/). If you find this tool helpful, consider [supporting my work](https://u77w41.github.io/support-my-work/).
+Built by [Ujjwal Chowdhury](https://u77w41.github.io/). If you find this tool helpful, consider [supporting my work](https://u77w41.github.io/support-my-work/).

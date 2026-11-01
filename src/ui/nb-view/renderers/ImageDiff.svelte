@@ -165,9 +165,14 @@
     border-right: none;
   }
 
+  .mode-btn:hover:not(.active) {
+    background: var(--card-background-muted);
+    color: var(--text-main);
+  }
+
   .mode-btn.active {
-    background: var(--primary);
-    color: var(--primary-contrast);
+    background: var(--accent);
+    color: var(--accent-text);
   }
 
   .side-by-side-view {
