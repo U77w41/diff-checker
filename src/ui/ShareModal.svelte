@@ -173,6 +173,7 @@
               type="file"
               accept=".json,application/json"
               class="hidden-file-input"
+              aria-label="Upload JSON diff bundle"
               bind:this={bundleFileInput}
               onchange={handleBundleFileChange}
             />

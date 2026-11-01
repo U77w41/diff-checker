@@ -251,6 +251,7 @@
             <input
               type="url"
               class="url-field"
+              aria-label="Remote file URL for original (A)"
               placeholder="https://raw.githubusercontent.com/... (CORS supported)"
               bind:value={urlA}
               onkeydown={(e) => e.key === 'Enter' && handleLoadFromUrl('A')}
@@ -329,6 +330,7 @@
             <input
               type="url"
               class="url-field"
+              aria-label="Remote file URL for modified (B)"
               placeholder="https://raw.githubusercontent.com/... (CORS supported)"
               bind:value={urlB}
               onkeydown={(e) => e.key === 'Enter' && handleLoadFromUrl('B')}
@@ -381,6 +383,7 @@
           type="file"
           accept=".json,application/json"
           class="visually-hidden"
+          aria-label="Upload JSON diff bundle"
           bind:this={bundleFileInput}
           onchange={handleBundleFileChange}
         />
