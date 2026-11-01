@@ -1,4 +1,4 @@
-import { diffLines, diffWordsWithSpace, diffChars } from 'diff';
+import { diffArrays, diffWordsWithSpace, diffChars } from 'diff';
 import { normaliseText, stripBOM } from './normalise';
 import type { NormalisedLine } from './normalise';
 import type { CharChange, DiffLine, DiffOptions, Hunk, InlineSpan, TextDiffResult } from './types';
@@ -37,11 +37,20 @@ export function diffText(rawA: string, rawB: string, opts: DiffOptions): TextDif
       removedCount++;
     }
   } else {
-    // Join normalised lines with trailing newline for line-by-line comparison
-    const joinA = normA.lines.map((l) => l.text + '\n').join('');
-    const joinB = normB.lines.map((l) => l.text + '\n').join('');
+    const rawChanges = diffArrays(normA.lines, normB.lines, {
+      comparator: (a: NormalisedLine, b: NormalisedLine) => {
+        if (a.text !== b.text) return false;
+        const breakA = cleanA.slice(a.end, a.endWithBreak);
+        const breakB = cleanB.slice(b.end, b.endWithBreak);
+        if (opts.ignoreLineEndings) {
+          const hasBreakA = breakA === '\n' || breakA === '\r\n' || breakA === '\r';
+          const hasBreakB = breakB === '\n' || breakB === '\r\n' || breakB === '\r';
+          return hasBreakA === hasBreakB;
+        }
+        return breakA === breakB;
+      }
+    });
 
-    const rawChanges = diffLines(joinA, joinB);
     let idxA = 0;
     let idxB = 0;
 

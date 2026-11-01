@@ -1,6 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { initTheme, toggleTheme, isDark } from './app/theme';
+  import type { DiffOptions, TextDiffResult } from './core/text-diff/types';
+  import { DEFAULT_DIFF_OPTIONS } from './core/text-diff/types';
+  import { workerManager } from './worker/worker-client';
+  import { generateGitPatch } from './core/patch';
+  import { detectLanguageFromFilename } from './ui/text-view/languages';
+  import InputPanel from './ui/InputPanel.svelte';
+  import Toolbar from './ui/Toolbar.svelte';
+  import TextView from './ui/text-view/TextView.svelte';
 
   let dark = $state(false);
   const currentYear = new Date().getFullYear();
@@ -10,10 +18,80 @@
       ? `© ${launchYear} Ujjwal Chowdhury`
       : `© ${launchYear} – ${currentYear} Ujjwal Chowdhury`;
 
+  // State
+  let textA = $state('');
+  let textB = $state('');
+  let fileNameA = $state<string | undefined>(undefined);
+  let fileNameB = $state<string | undefined>(undefined);
+
+  let options = $state<DiffOptions>({ ...DEFAULT_DIFF_OPTIONS });
+  let viewMode = $state<'side-by-side' | 'unified'>('side-by-side');
+  let selectedLanguage = $state('plain');
+
+  let diffResult = $state<TextDiffResult | null>(null);
+  let isDiffing = $state(false);
+  let showProgress = $state(false);
+  let ariaAnnouncement = $state('');
+  let chunkCount = $state(0);
+  let currentChunk = $state(0);
+  let slowWarning = $state(false);
+
+  interface TextViewHandle {
+    nextChange: () => void;
+    prevChange: () => void;
+  }
+  let textViewComponent = $state<TextViewHandle | null>(null);
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let progressTimer: ReturnType<typeof setTimeout> | null = null;
+
   onMount(() => {
     dark = isDark();
-    const cleanup = initTheme();
-    return cleanup;
+    const cleanupTheme = initTheme();
+
+    // Check screen width for default mobile view mode
+    if (window.innerWidth < 768) {
+      viewMode = 'unified';
+    }
+
+    const handleResize = () => {
+      if (window.innerWidth < 768 && viewMode === 'side-by-side') {
+        viewMode = 'unified';
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore shortcuts if focus is in an input or textarea
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === 'textarea' || activeTag === 'input') {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          runDiffNow();
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runDiffNow();
+      } else if (e.key === 'n') {
+        e.preventDefault();
+        handleNextChange();
+      } else if (e.key === 'p') {
+        e.preventDefault();
+        handlePrevChange();
+      } else if (e.key === 'u') {
+        e.preventDefault();
+        viewMode = viewMode === 'side-by-side' ? 'unified' : 'side-by-side';
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      cleanupTheme();
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   });
 
   function handleThemeToggle() {
@@ -28,9 +106,116 @@
       mainEl.focus();
     }
   }
+
+  // Detect language when file names change
+  $effect(() => {
+    const detected = detectLanguageFromFilename(fileNameA || fileNameB);
+    if (detected !== 'plain') {
+      selectedLanguage = detected;
+    }
+  });
+
+  // Debounced auto-run when inputs or options change
+  $effect(() => {
+    void textA;
+    void textB;
+    void options.ignoreWhitespace;
+    void options.ignoreBlankLines;
+    void options.ignoreCase;
+    void options.granularity;
+
+    if (textA.length > 0 || textB.length > 0) {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void runDiffNow();
+      }, 300);
+    }
+  });
+
+  async function runDiffNow() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    if (textA.length === 0 && textB.length === 0) {
+      diffResult = null;
+      return;
+    }
+
+    isDiffing = true;
+    slowWarning = false;
+
+    // Show progress indicator if diff takes > 200 ms
+    progressTimer = setTimeout(() => {
+      if (isDiffing) showProgress = true;
+    }, 200);
+
+    try {
+      const res = await workerManager.diffText(textA, textB, options, () => {
+        slowWarning = true;
+      });
+      diffResult = res;
+
+      // Announce for screen readers
+      ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
+    } catch (err) {
+      console.error('Diff failed:', err);
+    } finally {
+      isDiffing = false;
+      showProgress = false;
+      if (progressTimer) clearTimeout(progressTimer);
+    }
+  }
+
+  async function handleLoadExample() {
+    try {
+      const [resA, resB] = await Promise.all([
+        fetch('./examples/original.py'),
+        fetch('./examples/modified.py')
+      ]);
+      textA = await resA.text();
+      textB = await resB.text();
+      fileNameA = 'original.py';
+      fileNameB = 'modified.py';
+      selectedLanguage = 'python';
+      runDiffNow();
+    } catch (err) {
+      console.error('Failed to load example:', err);
+    }
+  }
+
+  function handleNextChange() {
+    textViewComponent?.nextChange();
+    if (chunkCount > 0) {
+      currentChunk = currentChunk < chunkCount ? currentChunk + 1 : 1;
+    }
+  }
+
+  function handlePrevChange() {
+    textViewComponent?.prevChange();
+    if (chunkCount > 0) {
+      currentChunk = currentChunk > 1 ? currentChunk - 1 : chunkCount;
+    }
+  }
+
+  function handleCopyPatch() {
+    const patch = generateGitPatch(fileNameA, textA, textB);
+    navigator.clipboard.writeText(patch);
+  }
+
+  function handleDownloadPatch() {
+    const patch = generateGitPatch(fileNameA, textA, textB);
+    const blob = new Blob([patch], { type: 'text/x-diff;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diff.patch';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <a class="skip-link" href="#main" onclick={handleSkipToContent}>Skip to content</a>
+
+<!-- Screen reader live region -->
+<div class="visually-hidden" aria-live="polite">{ariaAnnouncement}</div>
 
 <header class="site-header">
   <div class="container header-inner">
@@ -123,7 +308,6 @@
             <span class="nav-label">Anurup</span>
           </a>
         </li>
-        <!-- Desktop Support my work link -->
         <li class="mobile-hide">
           <a
             class="support-link-item"
@@ -172,7 +356,6 @@
             <span>Support my work</span>
           </a>
         </li>
-        <!-- Mobile Support my work link (round icon button) -->
         <li class="desktop-hide">
           <a
             class="support-link-item nav-text-desktop"
@@ -226,19 +409,84 @@
   </div>
 </header>
 
-<main id="main" class="container" tabindex="-1">
-  <section class="intro">
-    <h1>Diff Checker</h1>
-    <p>
-      A free, public web tool that compares two texts, scripts or Jupyter notebooks entirely in your
-      browser.
-    </p>
-    <p class="privacy-line">Runs entirely in your browser — nothing is uploaded.</p>
-  </section>
+<main id="main" class="container-wide" tabindex="-1">
+  <div class="container">
+    <section class="intro">
+      <h1>Diff Checker</h1>
+      <p>
+        A free, public web tool that compares two texts, scripts or Jupyter notebooks entirely in
+        your browser.
+      </p>
+      <p class="privacy-line">Runs entirely in your browser — nothing is uploaded.</p>
+    </section>
 
-  <div class="card">
-    <p>Diff engine scaffolded and ready for Phase 1 (Text diff core).</p>
+    <!-- Input Panels -->
+    <InputPanel
+      bind:textA
+      bind:textB
+      bind:fileNameA
+      bind:fileNameB
+      isDiffAvailable={diffResult !== null}
+      onCompare={runDiffNow}
+      onLoadExample={handleLoadExample}
+    />
   </div>
+
+  <!-- Results Section -->
+  {#if showProgress}
+    <div class="progress-bar-container">
+      <div class="progress-bar" role="progressbar" aria-label="Computing diff..."></div>
+    </div>
+  {/if}
+
+  {#if slowWarning}
+    <div class="container">
+      <div class="slow-warning card">
+        <span>Diff is taking longer than usual...</span>
+        <button
+          type="button"
+          class="btn-secondary"
+          onclick={() => {
+            workerManager.spawn();
+            isDiffing = false;
+            slowWarning = false;
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  {/if}
+
+  {#if diffResult}
+    <div class="results-area">
+      <Toolbar
+        bind:options
+        bind:viewMode
+        bind:selectedLanguage
+        stats={diffResult.stats}
+        {chunkCount}
+        {currentChunk}
+        onPrevChange={handlePrevChange}
+        onNextChange={handleNextChange}
+        onCopyPatch={handleCopyPatch}
+        onDownloadPatch={handleDownloadPatch}
+      />
+
+      <TextView
+        bind:this={textViewComponent}
+        {textA}
+        {textB}
+        changes={diffResult.changes}
+        identical={diffResult.identical}
+        {options}
+        {viewMode}
+        {selectedLanguage}
+        onChunkCountChange={(count: number) => (chunkCount = count)}
+        onCurrentChunkChange={(curr: number) => (currentChunk = curr)}
+      />
+    </div>
+  {/if}
 </main>
 
 <footer class="site-footer">
@@ -301,3 +549,44 @@
     <p class="copyright">{copyrightText}</p>
   </div>
 </footer>
+
+<style>
+  .results-area {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .progress-bar {
+    width: 40%;
+    height: 100%;
+    background: var(--accent);
+    animation: indeterminate 1.2s infinite ease-in-out;
+  }
+
+  .slow-warning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: rgba(234, 88, 12, 0.1);
+    color: #c2410c;
+  }
+
+  @keyframes indeterminate {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(350%);
+    }
+  }
+</style>
