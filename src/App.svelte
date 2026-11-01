@@ -698,7 +698,23 @@
 
     <div class="container">
       <section class="intro">
-        <h1>Diff Checker</h1>
+        <div class="app-title-row">
+          <svg
+            class="app-title-logo"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 3L12 21M14.7107 19.3887C17.1796 18.8321 19.1072 16.979 19.6863 14.6058C20.1046 12.8918 20.1046 11.1081 19.6863 9.39419C19.1072 7.02094 17.1796 5.16789 14.7107 4.61121M12 4.30969C11.0904 4.30969 10.1808 4.41019 9.28927 4.61121C6.82045 5.16789 4.89278 7.02094 4.31367 9.39419C3.89544 11.1081 3.89544 12.8918 4.31367 14.6058C4.89278 16.979 6.82045 18.8321 9.28928 19.3887C10.1808 19.5898 11.0904 19.6903 12 19.6903"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+            />
+          </svg>
+          <h1>Diff Checker</h1>
+        </div>
         <p>
           Compare text files, source code, or Jupyter notebooks directly in your browser. Your files
           stay private on your device.
@@ -973,6 +989,24 @@
 <HelpModal bind:isOpen={isHelpOpen} />
 
 <style>
+  .app-title-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .app-title-logo {
+    width: 2.1rem;
+    height: 2.1rem;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .app-title-row h1 {
+    margin: 0;
+  }
+
   .results-area {
     width: 100%;
     margin-top: 10px;
