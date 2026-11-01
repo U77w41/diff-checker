@@ -45,11 +45,14 @@
 
   let bundleFileInput: HTMLInputElement | undefined = $state();
 
-  // Sync collapsed state when a diff becomes available
+  let prevDiffAvailable = false;
+
+  // Sync collapsed state only when a diff transitions from unavailable to available
   $effect(() => {
-    if (isDiffAvailable && !isCollapsed && textA.length > 0 && textB.length > 0) {
+    if (isDiffAvailable && !prevDiffAvailable && textA.length > 0 && textB.length > 0) {
       isCollapsed = true;
     }
+    prevDiffAvailable = isDiffAvailable;
   });
 
   function formatBytes(bytes: number): string {

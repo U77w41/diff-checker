@@ -71,9 +71,8 @@ test.describe('Phase 5 Features: Hash routing, Share links, Shortcuts, and Mobil
 
     // Expand inputs to verify populated
     const editBtn = page.getByRole('button', { name: 'Edit inputs' });
-    if (await editBtn.isVisible()) {
-      await editBtn.click();
-    }
+    await expect(editBtn).toBeVisible();
+    await editBtn.click();
     const inputA = page.locator('#input-a');
     await expect(inputA).not.toHaveValue('');
   });
