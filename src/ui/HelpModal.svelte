@@ -53,6 +53,10 @@
               <td>Next / previous change chunk</td>
             </tr>
             <tr>
+              <td><kbd>j</kbd> / <kbd>k</kbd></td>
+              <td>Next / previous notebook cell</td>
+            </tr>
+            <tr>
               <td><kbd>u</kbd></td>
               <td>Toggle unified / side-by-side view</td>
             </tr>

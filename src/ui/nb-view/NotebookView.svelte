@@ -45,6 +45,70 @@
     }
   });
 
+  let selectedCellIndex = $state<number>(0);
+
+  // Default to first changed cell if available
+  $effect(() => {
+    const firstChanged = diffResult.cells.findIndex((c) => c.op.op !== 'unchanged');
+    selectedCellIndex = firstChanged !== -1 ? firstChanged : 0;
+  });
+
+  export function nextCell() {
+    const cells = diffResult.cells;
+    if (cells.length === 0) return;
+    const changedIndices = cells
+      .map((c, i) => (c.op.op !== 'unchanged' ? i : -1))
+      .filter((i) => i !== -1);
+    const targetList = changedIndices.length > 0 ? changedIndices : cells.map((_, i) => i);
+    const next = targetList.find((i) => i > selectedCellIndex);
+    handleSelectCell(next !== undefined ? next : targetList[0]!);
+  }
+
+  export function prevCell() {
+    const cells = diffResult.cells;
+    if (cells.length === 0) return;
+    const changedIndices = cells
+      .map((c, i) => (c.op.op !== 'unchanged' ? i : -1))
+      .filter((i) => i !== -1);
+    const targetList = changedIndices.length > 0 ? changedIndices : cells.map((_, i) => i);
+    const reversed = [...targetList].reverse();
+    const prev = reversed.find((i) => i < selectedCellIndex);
+    handleSelectCell(prev !== undefined ? prev : reversed[0]!);
+  }
+
+  function handleSelectCell(idx: number) {
+    selectedCellIndex = idx;
+    for (const item of displayItems) {
+      if (item.type === 'unchanged_run' && item.indices.includes(idx)) {
+        expandedRuns[item.runId] = true;
+        break;
+      }
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`cell-card-${idx}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 10);
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    if (
+      target?.matches('input, textarea, select, [contenteditable="true"]') ||
+      target?.closest('.cm-editor')
+    ) {
+      return;
+    }
+    if (e.key === 'j') {
+      e.preventDefault();
+      nextCell();
+    } else if (e.key === 'k') {
+      e.preventDefault();
+      prevCell();
+    }
+  }
+
   // Track expanded state for individual unchanged runs
   let expandedRuns = $state<Record<number, boolean>>({});
 
@@ -106,6 +170,8 @@
   }
 </script>
 
+<svelte:window onkeydown={handleKeyDown} />
+
 <div class="notebook-view-root">
   <!-- Top Notebook Header Changes (if any) -->
   {#if diffResult.header.length > 0}
@@ -140,6 +206,8 @@
       cells={diffResult.cells}
       {nbA}
       {nbB}
+      {selectedCellIndex}
+      onSelectCell={handleSelectCell}
       isOpenMobile={isMobileOutlineOpen}
       onCloseMobile={() => (isMobileOutlineOpen = false)}
     />
@@ -169,6 +237,8 @@
               cellB={item.index < (nbB?.cells.length ?? 0) ? nbB?.cells[item.index] : undefined}
               {hideOutputs}
               {hideMetadata}
+              isSelected={selectedCellIndex === item.index}
+              onSelect={() => (selectedCellIndex = item.index)}
             />
           {:else if item.type === 'unchanged_run'}
             {@const isExpanded = expandedRuns[item.runId] ?? false}
@@ -186,6 +256,8 @@
                   cellB={cIdx < (nbB?.cells.length ?? 0) ? nbB?.cells[cIdx] : undefined}
                   {hideOutputs}
                   {hideMetadata}
+                  isSelected={selectedCellIndex === cIdx}
+                  onSelect={() => (selectedCellIndex = cIdx)}
                 />
               {/each}
             {/if}

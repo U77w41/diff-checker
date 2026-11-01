@@ -26,17 +26,17 @@
 
 <div class="filter-bar card">
   <div class="filters-group">
-    <label class="filter-check">
+    <label class="filter-check {hideOutputs ? 'active' : ''}">
       <input type="checkbox" checked={hideOutputs} onchange={onToggleOutputs} />
       <span>Hide outputs</span>
     </label>
 
-    <label class="filter-check">
+    <label class="filter-check {hideMetadata ? 'active' : ''}">
       <input type="checkbox" checked={hideMetadata} onchange={onToggleMetadata} />
       <span>Hide metadata</span>
     </label>
 
-    <label class="filter-check">
+    <label class="filter-check {showUnchanged ? 'active' : ''}">
       <input type="checkbox" checked={showUnchanged} onchange={onToggleUnchanged} />
       <span>Show unchanged cells</span>
     </label>
@@ -101,10 +101,29 @@
   .filter-check {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     cursor: pointer;
     user-select: none;
     font-weight: 500;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius-tag);
+    border: 1px solid var(--border);
+    background: var(--card-background-muted);
+    transition:
+      background 0.15s,
+      border-color 0.15s,
+      color 0.15s;
+  }
+
+  .filter-check:hover {
+    border-color: var(--border-strong);
+  }
+
+  .filter-check.active {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+    font-weight: 600;
   }
 
   .advanced-wrapper {

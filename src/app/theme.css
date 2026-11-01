@@ -18,8 +18,11 @@
   --primary: var(--accent);
   --primary-contrast: var(--accent-text);
   --surface: var(--card-background);
+  --bg: var(--card-background-muted);
+  --text: var(--text-main);
   --radius-sm: var(--radius-tag);
   --font-size-xs: 0.8125rem;
+  --font-size-sm: 0.875rem;
   --focus-ring: #3b82f6;
   --danger: #b4232c;
   --danger-bg: rgba(180, 35, 44, 0.07);
@@ -45,9 +48,11 @@
   --diff-add-bg: rgba(59, 130, 246, 0.12);
   --diff-add-strong: rgba(59, 130, 246, 0.3); /* intra-line highlight */
   --diff-add-marker: #1d4ed8;
+  --diff-add-text: #1d4ed8;
   --diff-del-bg: rgba(234, 88, 12, 0.1);
   --diff-del-strong: rgba(234, 88, 12, 0.28);
   --diff-del-marker: #c2410c;
+  --diff-del-text: #c2410c;
   --diff-move: #7c3aed;
   --diff-move-bg: rgba(124, 58, 237, 0.1);
   color-scheme: light;
@@ -77,9 +82,11 @@
   --diff-add-bg: rgba(138, 180, 255, 0.14);
   --diff-add-strong: rgba(138, 180, 255, 0.32);
   --diff-add-marker: #8ab4ff;
+  --diff-add-text: #8ab4ff;
   --diff-del-bg: rgba(251, 146, 60, 0.14);
   --diff-del-strong: rgba(251, 146, 60, 0.32);
   --diff-del-marker: #fdba74;
+  --diff-del-text: #fdba74;
   --diff-move: #c4b5fd;
   --diff-move-bg: rgba(196, 181, 253, 0.12);
   color-scheme: dark;

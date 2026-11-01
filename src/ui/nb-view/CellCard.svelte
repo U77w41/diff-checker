@@ -16,9 +16,20 @@
     cellB?: NbCell;
     hideOutputs: boolean;
     hideMetadata: boolean;
+    isSelected?: boolean;
+    onSelect?: () => void;
   }
 
-  let { cellDiff, index, cellA, cellB, hideOutputs, hideMetadata }: Props = $props();
+  let {
+    cellDiff,
+    index,
+    cellA,
+    cellB,
+    hideOutputs,
+    hideMetadata,
+    isSelected = false,
+    onSelect
+  }: Props = $props();
 
   const op = $derived(cellDiff.op);
   const cell = $derived(cellB || cellA);
@@ -76,13 +87,26 @@
   let loadedLargeOutputs = $state<Record<number, boolean>>({});
 </script>
 
-<div class="cell-card card op-{op.op}" id="cell-card-{index}">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+  class="cell-card card op-{op.op} {isSelected ? 'is-selected' : ''}"
+  id="cell-card-{index}"
+  onclick={() => onSelect?.()}
+  onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect?.()}
+  tabindex="-1"
+  role="region"
+  aria-label="Cell #{index + 1} ({op.op})"
+>
   <!-- Cell Header -->
   <div class="cell-header">
     <div class="cell-badges">
       <span class="badge badge-op badge-{op.op}">{op.op}</span>
       <span class="badge badge-type">{cellType}</span>
       <span class="cell-num">#{index + 1}</span>
+
+      {#if isSelected}
+        <span class="badge badge-selected" aria-current="true">Active</span>
+      {/if}
 
       {#if op.op === 'moved'}
         <span class="cell-note">Moved from cell #{op.a + 1}</span>
@@ -355,6 +379,26 @@
     background: var(--surface);
     margin-bottom: 0.85rem;
     overflow: hidden;
+    outline: none;
+    transition:
+      box-shadow 0.15s,
+      border-color 0.15s;
+  }
+
+  .cell-card.is-selected {
+    border-color: var(--focus-ring);
+    box-shadow:
+      0 0 0 2px var(--focus-ring),
+      var(--shadow-l2);
+  }
+
+  .badge-selected {
+    background: var(--focus-ring);
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
   }
 
   .op-added {
@@ -565,9 +609,9 @@
   }
 
   .btn-text.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-    font-weight: 600;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
   }
 
   .rendered-markdown-pair {

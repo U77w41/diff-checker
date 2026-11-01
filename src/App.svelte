@@ -68,6 +68,12 @@
     prevChange: () => void;
   }
   let textViewComponent = $state<TextViewHandle | null>(null);
+
+  interface NotebookViewHandle {
+    nextCell: () => void;
+    prevCell: () => void;
+  }
+  let notebookViewComponent = $state<NotebookViewHandle | null>(null);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let progressTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -206,10 +212,10 @@
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         runDiffNow();
-      } else if (e.key === 'n') {
+      } else if (e.key === 'n' || (currentMode === 'notebook' && e.key === 'j')) {
         e.preventDefault();
         handleNextChange();
-      } else if (e.key === 'p') {
+      } else if (e.key === 'p' || (currentMode === 'notebook' && e.key === 'k')) {
         e.preventDefault();
         handlePrevChange();
       } else if (e.key === 'u') {
@@ -426,16 +432,24 @@
   }
 
   function handleNextChange() {
-    textViewComponent?.nextChange();
-    if (chunkCount > 0) {
-      currentChunk = currentChunk < chunkCount ? currentChunk + 1 : 1;
+    if (currentMode === 'notebook') {
+      notebookViewComponent?.nextCell();
+    } else {
+      textViewComponent?.nextChange();
+      if (chunkCount > 0) {
+        currentChunk = currentChunk < chunkCount ? currentChunk + 1 : 1;
+      }
     }
   }
 
   function handlePrevChange() {
-    textViewComponent?.prevChange();
-    if (chunkCount > 0) {
-      currentChunk = currentChunk > 1 ? currentChunk - 1 : chunkCount;
+    if (currentMode === 'notebook') {
+      notebookViewComponent?.prevCell();
+    } else {
+      textViewComponent?.prevChange();
+      if (chunkCount > 0) {
+        currentChunk = currentChunk > 1 ? currentChunk - 1 : chunkCount;
+      }
     }
   }
 
@@ -686,10 +700,9 @@
       <section class="intro">
         <h1>Diff Checker</h1>
         <p>
-          A free, public web tool that compares two texts, scripts or Jupyter notebooks entirely in
-          your browser.
+          Compare text files, source code, or Jupyter notebooks directly in your browser. Your files
+          stay private on your device.
         </p>
-        <p class="privacy-line">Runs entirely in your browser — nothing is uploaded.</p>
 
         <!-- Mode Selector Tabs -->
         <div class="mode-tabs-bar" role="tablist" aria-label="Diff comparison mode">
@@ -704,7 +717,13 @@
               void runDiffNow();
             }}
           >
-            📄 Text & Scripts
+            {#if currentMode === 'text'}
+              <span class="active-dot" aria-hidden="true">●</span>
+            {/if}
+            <span class="tab-label">📄 Text &amp; Scripts</span>
+            {#if currentMode === 'text'}
+              <span class="active-badge">Active</span>
+            {/if}
           </button>
           <button
             type="button"
@@ -717,7 +736,13 @@
               void runDiffNow();
             }}
           >
-            🪐 Jupyter Notebooks
+            {#if currentMode === 'notebook'}
+              <span class="active-dot" aria-hidden="true">●</span>
+            {/if}
+            <span class="tab-label">🪐 Jupyter Notebooks</span>
+            {#if currentMode === 'notebook'}
+              <span class="active-badge">Active</span>
+            {/if}
           </button>
         </div>
       </section>
@@ -832,6 +857,7 @@
     {#if currentMode === 'notebook' && nbDiffResult}
       <div class="results-area">
         <NotebookView
+          bind:this={notebookViewComponent}
           diffResult={nbDiffResult}
           rawA={textA}
           rawB={textB}
@@ -979,40 +1005,65 @@
 
   .mode-tabs-bar {
     display: inline-flex;
-    background: var(--surface);
+    align-items: center;
+    background: var(--card-background-muted);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    margin-top: 0.5rem;
+    border-radius: 9999px;
+    padding: 4px;
+    gap: 4px;
+    margin-top: 0.75rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   .tab-btn {
-    padding: 0.45rem 1rem;
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    background: none;
-    border: none;
-    border-right: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1.1rem;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 9999px;
     color: var(--text-muted);
     cursor: pointer;
     min-height: 44px;
-    transition:
-      background 0.15s,
-      color 0.15s;
-  }
-
-  .tab-btn:last-child {
-    border-right: none;
+    transition: all 0.15s ease-in-out;
   }
 
   .tab-btn:hover:not(.active) {
-    background: var(--card-background-muted);
+    background: var(--card-background);
     color: var(--text-main);
   }
 
-  .tab-btn.active {
+  .tab-btn.active,
+  .tab-btn[aria-selected='true'] {
     background: var(--accent);
     color: var(--accent-text);
+    border-color: var(--accent);
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .tab-label {
+    display: inline-block;
+  }
+
+  .active-dot {
+    font-size: 0.65rem;
+    color: currentColor;
+    opacity: 0.9;
+  }
+
+  .active-badge {
+    font-size: 0.7rem;
+    padding: 0.12rem 0.5rem;
+    border-radius: 9999px;
+    background: var(--accent-text);
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
 
   .status-banner {

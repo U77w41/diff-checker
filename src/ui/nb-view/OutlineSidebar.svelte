@@ -6,11 +6,21 @@
     cells: CellDiff[];
     nbA?: Notebook;
     nbB?: Notebook;
+    selectedCellIndex?: number;
+    onSelectCell?: (idx: number) => void;
     isOpenMobile: boolean;
     onCloseMobile: () => void;
   }
 
-  let { cells, nbA, nbB, isOpenMobile, onCloseMobile }: Props = $props();
+  let {
+    cells,
+    nbA,
+    nbB,
+    selectedCellIndex = 0,
+    onSelectCell,
+    isOpenMobile,
+    onCloseMobile
+  }: Props = $props();
 
   function getCellSnippet(diff: CellDiff): string {
     const op = diff.op;
@@ -27,9 +37,10 @@
   }
 
   function scrollToCell(idx: number) {
+    onSelectCell?.(idx);
     const el = document.getElementById(`cell-card-${idx}`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     onCloseMobile();
   }
@@ -59,7 +70,7 @@
       {#each changedCells as item (item.idx)}
         <button
           type="button"
-          class="outline-item op-{item.cell.op.op}"
+          class="outline-item op-{item.cell.op.op} {selectedCellIndex === item.idx ? 'active' : ''}"
           onclick={() => scrollToCell(item.idx)}
         >
           <span class="op-icon" aria-hidden="true">
@@ -156,6 +167,12 @@
 
   .outline-item:hover {
     background: var(--bg);
+  }
+
+  .outline-item.active {
+    background: var(--bg);
+    border-left: 4px solid var(--focus-ring);
+    font-weight: 700;
   }
 
   .op-icon {
