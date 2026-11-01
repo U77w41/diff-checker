@@ -14,17 +14,18 @@ test.describe('Phase 5 Features: Hash routing, Share links, Shortcuts, and Mobil
     const encoded = encodeSharePayload(payload);
     await page.goto(`./#s=${encoded.compressed}`);
 
-    // Verify inputs populated and diff executed
-    const inputA = page.locator('#input-a');
-    const inputB = page.locator('#input-b');
-    await expect(inputA).toHaveValue(payload.a);
-    await expect(inputB).toHaveValue(payload.b);
-
     // Verify change stats visible in toolbar
     const stats = page.locator('.diff-stats');
     await expect(stats).toBeVisible();
     await expect(stats).toContainText('+1');
     await expect(stats).toContainText('−1');
+
+    // Click Edit inputs to expand panel and verify textareas
+    await page.getByRole('button', { name: 'Edit inputs' }).click();
+    const inputA = page.locator('#input-a');
+    const inputB = page.locator('#input-b');
+    await expect(inputA).toHaveValue(payload.a);
+    await expect(inputB).toHaveValue(payload.b);
   });
 
   test('handles corrupted #s= share link by displaying error banner', async ({ page }) => {
@@ -64,12 +65,17 @@ test.describe('Phase 5 Features: Hash routing, Share links, Shortcuts, and Mobil
     const exampleBtn = page.getByRole('button', { name: 'Try an example' });
     await exampleBtn.click();
 
-    const inputA = page.locator('#input-a');
-    await expect(inputA).not.toHaveValue('');
-
     // Wait for diff results
     const stats = page.locator('.diff-stats');
     await expect(stats).toBeVisible();
+
+    // Expand inputs to verify populated
+    const editBtn = page.getByRole('button', { name: 'Edit inputs' });
+    if (await editBtn.isVisible()) {
+      await editBtn.click();
+    }
+    const inputA = page.locator('#input-a');
+    await expect(inputA).not.toHaveValue('');
   });
 
   test('mobile layout hides side-by-side and displays folded menu button', async ({
