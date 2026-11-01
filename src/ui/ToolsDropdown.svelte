@@ -223,9 +223,15 @@
   }
 
   @media (max-width: 768px) {
+    .menu-social-dropdown {
+      position: static;
+    }
+
     .menu-social-dropdown-panel {
       right: auto;
-      left: 0;
+      left: var(--gutter, 16px);
+      width: min(320px, calc(100vw - 32px));
+      top: 100%;
     }
   }
 
