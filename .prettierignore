@@ -1,0 +1,8 @@
+node_modules
+dist
+.github
+public/assets
+package-lock.json
+plan.md
+dist
+
