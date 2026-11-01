@@ -537,6 +537,9 @@
     <nav class="site-nav" aria-label="Main">
       <ul>
         <li>
+          <ToolsDropdown />
+        </li>
+        <li>
           <a class="nav-text-desktop" href="https://u77w41.github.io/resume/" aria-label="Hire Me">
             <svg
               class="nav-icon"
@@ -555,9 +558,6 @@
             </svg>
             <span class="nav-label">Hire Me</span>
           </a>
-        </li>
-        <li>
-          <ToolsDropdown />
         </li>
         <li class="mobile-hide">
           <a

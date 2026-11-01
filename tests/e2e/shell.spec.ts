@@ -85,6 +85,7 @@ test.describe('Branded shell and header/footer', () => {
     await expect(toggle).toBeVisible();
     await expect(toggle).toHaveAttribute('aria-haspopup', 'true');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toContainText('My Other Tools');
 
     const panel = page.locator('#menu-social-dropdown-tools');
     await expect(panel).toBeHidden();
@@ -129,5 +130,18 @@ test.describe('Branded shell and header/footer', () => {
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(375);
     }
+  });
+
+  test('navigation items appear in order: My Other Tools, Hire Me, Support my work', async ({
+    page,
+    isMobile
+  }) => {
+    test.skip(isMobile, 'Desktop nav text assertion');
+    await page.goto('./');
+
+    const navItems = page.locator('nav.site-nav > ul > li');
+    await expect(navItems.nth(0)).toContainText('My Other Tools');
+    await expect(navItems.nth(1)).toContainText('Hire Me');
+    await expect(navItems.nth(2)).toContainText('Support my work');
   });
 });
