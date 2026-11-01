@@ -83,6 +83,7 @@ test.describe('Branded shell and header/footer', () => {
 
     const toggle = page.locator('button.menu-social-dropdown-toggle');
     await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-haspopup', 'true');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     const panel = page.locator('#menu-social-dropdown-tools');
@@ -110,5 +111,23 @@ test.describe('Branded shell and header/footer', () => {
     await page.locator('body').click({ position: { x: 10, y: 10 } });
     await expect(panel).toBeHidden();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('tools dropdown is properly positioned on mobile viewports', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('./');
+
+    const toggle = page.locator('button.menu-social-dropdown-toggle');
+    await toggle.click();
+
+    const panel = page.locator('#menu-social-dropdown-tools');
+    await expect(panel).toBeVisible();
+
+    const box = await panel.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(375);
+    }
   });
 });

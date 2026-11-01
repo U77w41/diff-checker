@@ -480,11 +480,7 @@
 
 <header class="site-header">
   <div class="container header-inner">
-    <a
-      class="brand"
-      href="./"
-      aria-label="Diff Checker home"
-    >
+    <a class="brand" href="./" aria-label="Diff Checker home">
       <svg
         class="brand-icon"
         viewBox="0 0 24 24"

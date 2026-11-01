@@ -19,7 +19,8 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && isOpen) {
       e.stopPropagation();
-      closeDropdown(true);
+      const shouldFocus = container ? container.contains(document.activeElement) : false;
+      closeDropdown(shouldFocus);
     }
   }
 
@@ -39,6 +40,7 @@
     class="menu-social-dropdown-toggle"
     title="Tools"
     aria-label="Tools"
+    aria-haspopup="true"
     aria-expanded={isOpen}
     aria-controls="menu-social-dropdown-tools"
     onclick={toggleDropdown}
@@ -78,18 +80,14 @@
     </span>
   </button>
 
-  <div
-    class="menu-social-dropdown-panel"
-    id="menu-social-dropdown-tools"
-    hidden={!isOpen}
-  >
+  <div class="menu-social-dropdown-panel" id="menu-social-dropdown-tools" hidden={!isOpen}>
     <p class="menu-social-dropdown-title">Tools</p>
     <ul>
       <li>
         <a
           href="https://u77w41.github.io/anurup/"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           onclick={() => closeDropdown(false)}
         >
           <span class="menu-social-dropdown-icon">
@@ -163,7 +161,9 @@
     min-height: 44px;
     min-width: 44px;
     justify-content: center;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
   }
 
   .menu-social-dropdown-toggle:hover {
@@ -217,7 +217,16 @@
     background: var(--card-background);
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-l2), 0 12px 32px rgba(0, 0, 0, 0.12);
+    box-shadow:
+      var(--shadow-l2),
+      0 12px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  @media (max-width: 768px) {
+    .menu-social-dropdown-panel {
+      right: auto;
+      left: 0;
+    }
   }
 
   :global([data-scheme='dark']) .menu-social-dropdown-panel {
@@ -254,10 +263,14 @@
     transition: background-color 0.15s ease;
   }
 
-  .menu-social-dropdown-panel a:hover,
+  .menu-social-dropdown-panel a:hover {
+    background: var(--card-background-muted);
+  }
+
   .menu-social-dropdown-panel a:focus-visible {
     background: var(--card-background-muted);
-    outline: none;
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .menu-social-dropdown-icon {

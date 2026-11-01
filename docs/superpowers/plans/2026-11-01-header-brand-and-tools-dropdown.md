@@ -30,12 +30,15 @@
 ### Task 1: Create `ToolsDropdown.svelte` Component
 
 **Files:**
+
 - Create: `src/ui/ToolsDropdown.svelte`
 
 **Interfaces:**
+
 - Produces: `default` Svelte component `<ToolsDropdown />`
 - State: `isOpen: boolean` via `$state(false)`
 - Interactions:
+
   - Toggle button: `aria-expanded={isOpen}`, `aria-controls="menu-social-dropdown-tools"`
   - Panel: `id="menu-social-dropdown-tools"`, `hidden={!isOpen}`
   - Link: `href="https://u77w41.github.io/anurup/"`, `target="_blank"`, `rel="noopener"`
@@ -43,6 +46,7 @@
 - [ ] **Step 1: Write `src/ui/ToolsDropdown.svelte`**
 
 Implement the Svelte 5 component with:
+
 1. `let isOpen = $state(false);`
 2. Outside-click listener via window event listener when open.
 3. Keydown listener on toggle and panel for `Escape` closing with focus return.
@@ -67,12 +71,15 @@ git commit -m "feat(ui): add ToolsDropdown component"
 ### Task 2: Integrate `ToolsDropdown` and Update Brand in `App.svelte` & `theme.css`
 
 **Files:**
+
 - Modify: `src/App.svelte`
 - Modify: `src/app/theme.css`
 
 **Interfaces:**
+
 - Consumes: `ToolsDropdown` from `./ui/ToolsDropdown.svelte`
 - Updates:
+
   - Brand link `<a class="brand" href="./" aria-label="Diff Checker home">`
   - Inline Diff Checker SVG logo styled with `currentColor`
   - `<span class="brand-name">Diff Checker</span>` (removed avatar and tagline)
@@ -81,6 +88,7 @@ git commit -m "feat(ui): add ToolsDropdown component"
 - [ ] **Step 1: Update `src/app/theme.css` for brand styling**
 
 Adjust `.brand` styles:
+
 - Replace or augment `.brand-avatar` with `.brand-icon` (36x36 px, flex-shrink 0, `color: var(--accent)`).
 - Ensure `.brand-name` has appropriate size (18px, font-weight 700) and aligns cleanly with `.brand-icon`.
 
@@ -99,7 +107,9 @@ Adjust `.brand` styles:
        stroke-linecap="round"
        aria-hidden="true"
      >
-       <path d="M12 3L12 21M14.7107 19.3887C17.1796 18.8321 19.1072 16.979 19.6863 14.6058C20.1046 12.8918 20.1046 11.1081 19.6863 9.39419C19.1072 7.02094 17.1796 5.16789 14.7107 4.61121M12 4.30969C11.0904 4.30969 10.1808 4.41019 9.28927 4.61121C6.82045 5.16789 4.89278 7.02094 4.31367 9.39419C3.89544 11.1081 3.89544 12.8918 4.31367 14.6058C4.89278 16.979 6.82045 18.8321 9.28928 19.3887C10.1808 19.5898 11.0904 19.6903 12 19.6903" />
+       <path
+         d="M12 3L12 21M14.7107 19.3887C17.1796 18.8321 19.1072 16.979 19.6863 14.6058C20.1046 12.8918 20.1046 11.1081 19.6863 9.39419C19.1072 7.02094 17.1796 5.16789 14.7107 4.61121M12 4.30969C11.0904 4.30969 10.1808 4.41019 9.28927 4.61121C6.82045 5.16789 4.89278 7.02094 4.31367 9.39419C3.89544 11.1081 3.89544 12.8918 4.31367 14.6058C4.89278 16.979 6.82045 18.8321 9.28928 19.3887C10.1808 19.5898 11.0904 19.6903 12 19.6903"
+       />
      </svg>
      <span class="brand-text">
        <span class="brand-name">Diff Checker</span>
@@ -125,15 +135,18 @@ git commit -m "feat(ui): update header brand to Diff Checker and add Tools dropd
 ### Task 3: Update E2E Tests & Final Verification
 
 **Files:**
+
 - Modify: `tests/e2e/shell.spec.ts`
 
 **Interfaces:**
+
 - Validates brand link: `href="./"`, text `'Diff Checker'`
 - Validates Tools dropdown: toggle, expand, outside click, and Escape dismiss
 
 - [ ] **Step 1: Update and expand `tests/e2e/shell.spec.ts`**
 
 Update `renders page title and header brand`:
+
 ```typescript
 const brand = page.locator('header a.brand');
 await expect(brand).toHaveAttribute('href', './');
@@ -141,8 +154,11 @@ await expect(brand.locator('.brand-name')).toHaveText('Diff Checker');
 ```
 
 Add tests for Tools dropdown:
+
 ```typescript
-test('tools dropdown opens, displays anurup, and closes on escape and outside click', async ({ page }) => {
+test('tools dropdown opens, displays anurup, and closes on escape and outside click', async ({
+  page
+}) => {
   await page.goto('./');
 
   const toggle = page.locator('button.menu-social-dropdown-toggle');
@@ -180,6 +196,7 @@ test('tools dropdown opens, displays anurup, and closes on escape and outside cl
 - [ ] **Step 2: Run verification chain**
 
 Run:
+
 ```bash
 npm run typecheck
 npm run lint
@@ -188,6 +205,7 @@ npm run build
 npm run size
 npm run test:e2e
 ```
+
 Expected: All suites pass without errors.
 
 - [ ] **Step 3: Commit**
