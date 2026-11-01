@@ -6,7 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI ? [['list'], ['html']] : 'html',
   use: {
     baseURL: 'http://localhost:4173/diff-checker/',
     trace: 'on-first-retry'
@@ -27,15 +27,13 @@ export default defineConfig({
     {
       name: 'mobile',
       use: {
-        viewport: { width: 390, height: 844 },
-        userAgent:
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
+        ...devices['iPhone 12']
       }
     }
   ],
   webServer: {
-    command: 'npm run preview -- --port 4173',
-    port: 4173,
+    command: 'npm run preview -- --port 4173 --host',
+    url: 'http://localhost:4173/diff-checker/',
     reuseExistingServer: !process.env.CI
   }
 });
