@@ -242,6 +242,13 @@ code,
   flex-shrink: 0;
 }
 
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;
