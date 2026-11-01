@@ -1,6 +1,7 @@
 [
   {
-    "path": "dist/assets/*.js",
+    "name": "Initial JS",
+    "path": "dist/assets/index-*.js",
     "limit": "250 KB"
   }
 ]

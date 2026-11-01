@@ -11,6 +11,11 @@
   import TextView from './ui/text-view/TextView.svelte';
 
   let dark = $state(false);
+  import { detectInputMode, type InputMode } from './core/detect';
+  import type { NbDiffOptions, NotebookDiffResult } from './core/nb-diff/types';
+  import { DEFAULT_NB_DIFF_OPTIONS } from './core/nb-diff/types';
+  import NotebookView from './ui/nb-view/NotebookView.svelte';
+
   const currentYear = new Date().getFullYear();
   const launchYear = 2026;
   const copyrightText =
@@ -28,7 +33,10 @@
   let viewMode = $state<'side-by-side' | 'unified'>('side-by-side');
   let selectedLanguage = $state('plain');
 
+  let currentMode = $state<InputMode>('text');
   let diffResult = $state<TextDiffResult | null>(null);
+  let nbDiffResult = $state<NotebookDiffResult | null>(null);
+  let nbOptions = $state<NbDiffOptions>({ ...DEFAULT_NB_DIFF_OPTIONS });
   let isDiffing = $state(false);
   let showProgress = $state(false);
   let ariaAnnouncement = $state('');
@@ -107,11 +115,17 @@
     }
   }
 
-  // Detect language when file names change
+  // Detect language and mode when file names or contents change
   $effect(() => {
     const detected = detectLanguageFromFilename(fileNameA || fileNameB);
     if (detected !== 'plain') {
       selectedLanguage = detected;
+    }
+
+    const modeA = detectInputMode(fileNameA, textA);
+    const modeB = detectInputMode(fileNameB, textB);
+    if (modeA === 'notebook' || modeB === 'notebook') {
+      currentMode = 'notebook';
     }
   });
 
@@ -119,10 +133,14 @@
   $effect(() => {
     void textA;
     void textB;
+    void currentMode;
     void options.ignoreWhitespace;
     void options.ignoreBlankLines;
     void options.ignoreCase;
     void options.granularity;
+    void nbOptions.includeOutputs;
+    void nbOptions.hideNoisyMetadata;
+    void nbOptions.similarityThreshold;
 
     if (textA.length > 0 || textB.length > 0) {
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -136,6 +154,7 @@
     if (debounceTimer) clearTimeout(debounceTimer);
     if (textA.length === 0 && textB.length === 0) {
       diffResult = null;
+      nbDiffResult = null;
       return;
     }
 
@@ -148,13 +167,19 @@
     }, 200);
 
     try {
-      const res = await workerManager.diffText(textA, textB, options, () => {
-        slowWarning = true;
-      });
-      diffResult = res;
-
-      // Announce for screen readers
-      ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
+      if (currentMode === 'notebook') {
+        const res = await workerManager.diffNotebook(textA, textB, nbOptions, () => {
+          slowWarning = true;
+        });
+        nbDiffResult = res;
+        ariaAnnouncement = `Notebook diff: ${res.stats.modified} modified, ${res.stats.added} added, ${res.stats.deleted} deleted, ${res.stats.moved} moved`;
+      } else {
+        const res = await workerManager.diffText(textA, textB, options, () => {
+          slowWarning = true;
+        });
+        diffResult = res;
+        ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
+      }
     } catch (err) {
       console.error('Diff failed:', err);
     } finally {
@@ -166,16 +191,29 @@
 
   async function handleLoadExample() {
     try {
-      const [resA, resB] = await Promise.all([
-        fetch('./examples/original.py'),
-        fetch('./examples/modified.py')
-      ]);
-      textA = await resA.text();
-      textB = await resB.text();
-      fileNameA = 'original.py';
-      fileNameB = 'modified.py';
-      selectedLanguage = 'python';
-      runDiffNow();
+      if (currentMode === 'notebook') {
+        const [resA, resB] = await Promise.all([
+          fetch('./examples/original.ipynb'),
+          fetch('./examples/modified.ipynb')
+        ]);
+        textA = await resA.text();
+        textB = await resB.text();
+        fileNameA = 'original.ipynb';
+        fileNameB = 'modified.ipynb';
+        selectedLanguage = 'json';
+        void runDiffNow();
+      } else {
+        const [resA, resB] = await Promise.all([
+          fetch('./examples/original.py'),
+          fetch('./examples/modified.py')
+        ]);
+        textA = await resA.text();
+        textB = await resB.text();
+        fileNameA = 'original.py';
+        fileNameB = 'modified.py';
+        selectedLanguage = 'python';
+        void runDiffNow();
+      }
     } catch (err) {
       console.error('Failed to load example:', err);
     }
@@ -418,6 +456,34 @@
         your browser.
       </p>
       <p class="privacy-line">Runs entirely in your browser — nothing is uploaded.</p>
+
+      <!-- Mode Selector Tabs -->
+      <div class="mode-tabs-bar" role="tablist" aria-label="Diff comparison mode">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={currentMode === 'text'}
+          class="tab-btn {currentMode === 'text' ? 'active' : ''}"
+          onclick={() => {
+            currentMode = 'text';
+            void runDiffNow();
+          }}
+        >
+          📄 Text & Scripts
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={currentMode === 'notebook'}
+          class="tab-btn {currentMode === 'notebook' ? 'active' : ''}"
+          onclick={() => {
+            currentMode = 'notebook';
+            void runDiffNow();
+          }}
+        >
+          🪐 Jupyter Notebooks
+        </button>
+      </div>
     </section>
 
     <!-- Input Panels -->
@@ -426,7 +492,7 @@
       bind:textB
       bind:fileNameA
       bind:fileNameB
-      isDiffAvailable={diffResult !== null}
+      isDiffAvailable={diffResult !== null || nbDiffResult !== null}
       onCompare={runDiffNow}
       onLoadExample={handleLoadExample}
     />
@@ -458,7 +524,20 @@
     </div>
   {/if}
 
-  {#if diffResult}
+  {#if currentMode === 'notebook' && nbDiffResult}
+    <div class="results-area">
+      <NotebookView
+        diffResult={nbDiffResult}
+        rawA={textA}
+        rawB={textB}
+        options={nbOptions}
+        onOptionsChange={(newOpts) => {
+          nbOptions = { ...nbOptions, ...newOpts };
+          void runDiffNow();
+        }}
+      />
+    </div>
+  {:else if currentMode === 'text' && diffResult}
     <div class="results-area">
       <Toolbar
         bind:options
@@ -579,6 +658,38 @@
     margin-bottom: 16px;
     background: rgba(234, 88, 12, 0.1);
     color: #c2410c;
+  }
+
+  .mode-tabs-bar {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-top: 0.5rem;
+  }
+
+  .tab-btn {
+    padding: 0.45rem 1rem;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  .tab-btn:last-child {
+    border-right: none;
+  }
+
+  .tab-btn.active {
+    background: var(--primary);
+    color: var(--primary-contrast);
   }
 
   @keyframes indeterminate {
