@@ -37,18 +37,18 @@
   <button
     bind:this={toggleBtn}
     type="button"
-    class="menu-social-dropdown-toggle"
-    title="Tools"
-    aria-label="Tools"
+    class="menu-social-dropdown-toggle nav-text-desktop"
+    title="My Other Tools"
+    aria-label="My Other Tools"
     aria-haspopup="true"
     aria-expanded={isOpen}
     aria-controls="menu-social-dropdown-tools"
     onclick={toggleDropdown}
   >
     <svg
-      class="icon icon-tools-grid"
-      width="24"
-      height="24"
+      class="nav-icon icon-tools-grid"
+      width="18"
+      height="18"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -62,14 +62,15 @@
       <circle cx="6.5" cy="17.5" r="3.5" />
       <circle cx="6.5" cy="6.5" r="3.5" />
     </svg>
+    <span class="nav-label">My Other Tools</span>
     <span class="menu-social-dropdown-chevron" aria-hidden="true">
       <svg
-        width="24"
-        height="24"
+        width="12"
+        height="12"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        stroke-width="2"
+        stroke-width="2.5"
         stroke-linecap="round"
         stroke-linejoin="round"
         class="icon icon-chevron"
@@ -150,20 +151,34 @@
   .menu-social-dropdown-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 8px 10px;
+    gap: 8px;
+    padding: 7px 12px;
     margin: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: transparent;
     color: var(--text-body);
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 400;
+    line-height: inherit;
     cursor: pointer;
-    min-height: 44px;
-    min-width: 44px;
-    justify-content: center;
+    white-space: nowrap;
+    text-decoration: none;
     transition:
       background-color 0.15s ease,
-      color 0.15s ease;
+      color 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .nav-label {
+    display: inline;
   }
 
   .menu-social-dropdown-toggle:hover {
@@ -186,12 +201,14 @@
 
   .menu-social-dropdown-chevron {
     display: inline-flex;
+    align-items: center;
+    margin-left: -2px;
   }
 
   .menu-social-dropdown-chevron svg {
-    width: 14px;
-    height: 14px;
-    stroke-width: 2.25;
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.5;
     transform: rotate(90deg);
     transition: transform 0.2s ease;
   }
@@ -225,6 +242,28 @@
   @media (max-width: 768px) {
     .menu-social-dropdown {
       position: static;
+    }
+
+    .menu-social-dropdown-toggle {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      gap: 0;
+    }
+
+    .menu-social-dropdown-toggle:hover {
+      border-color: var(--border-strong);
+    }
+
+    .menu-social-dropdown-toggle .nav-label {
+      display: none;
+    }
+
+    .menu-social-dropdown-toggle .menu-social-dropdown-chevron {
+      display: none;
     }
 
     .menu-social-dropdown-panel {
