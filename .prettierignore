@@ -1,8 +1,7 @@
 node_modules
 dist
+coverage
 .github
 public/assets
 package-lock.json
 plan.md
-dist
-
