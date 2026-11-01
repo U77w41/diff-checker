@@ -17,6 +17,7 @@
   import HelpModal from './ui/HelpModal.svelte';
   import { decodeSharePayload, type SharePayload } from './core/share';
   import { loadSettings, saveSettings, type StoredSettings } from './app/settings';
+  import { DiffError } from './core/errors';
 
   const currentYear = new Date().getFullYear();
   const launchYear = 2026;
@@ -51,6 +52,12 @@
   let rememberInputs = $state(false);
   let storageError = $state<string | null>(null);
   let shareBannerError = $state<string | null>(null);
+
+  // Error handling matrix states
+  let modeMismatchWarning = $state<string | null>(null);
+  let notebookJsonError = $state<{ message: string; line?: number; column?: number } | null>(null);
+  let notebookFormatError = $state<string | null>(null);
+  let diffErrorMessage = $state<string | null>(null);
 
   // Modals
   let isShareOpen = $state(false);
@@ -293,11 +300,18 @@
     if (textA.length === 0 && textB.length === 0) {
       diffResult = null;
       nbDiffResult = null;
+      notebookJsonError = null;
+      notebookFormatError = null;
+      diffErrorMessage = null;
+      modeMismatchWarning = null;
       return;
     }
 
     isDiffing = true;
     slowWarning = false;
+    notebookJsonError = null;
+    notebookFormatError = null;
+    diffErrorMessage = null;
 
     // Show progress indicator if diff takes > 200 ms
     progressTimer = setTimeout(() => {
@@ -305,26 +319,80 @@
     }, 200);
 
     try {
-      if (currentMode === 'notebook') {
-        const res = await workerManager.diffNotebook(textA, textB, nbOptions, () => {
-          slowWarning = true;
-        });
-        nbDiffResult = res;
-        ariaAnnouncement = `Notebook diff: ${res.stats.modified} modified, ${res.stats.added} added, ${res.stats.deleted} deleted, ${res.stats.moved} moved`;
-      } else {
+      // Check for notebook vs non-notebook mismatch
+      const detectedA = detectInputMode(fileNameA, textA);
+      const detectedB = detectInputMode(fileNameB, textB);
+      const isMismatch =
+        textA.length > 0 &&
+        textB.length > 0 &&
+        detectedA !== detectedB &&
+        (detectedA === 'notebook' || detectedB === 'notebook');
+
+      if (isMismatch) {
+        modeMismatchWarning =
+          'Comparing notebook with non-notebook file — comparing as plain text instead.';
         const res = await workerManager.diffText(textA, textB, options, () => {
           slowWarning = true;
         });
         diffResult = res;
+        nbDiffResult = null;
         ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
+      } else {
+        modeMismatchWarning = null;
+        if (currentMode === 'notebook') {
+          const res = await workerManager.diffNotebook(textA, textB, nbOptions, () => {
+            slowWarning = true;
+          });
+          nbDiffResult = res;
+          diffResult = null;
+          ariaAnnouncement = `Notebook diff: ${res.stats.modified} modified, ${res.stats.added} added, ${res.stats.deleted} deleted, ${res.stats.moved} moved`;
+        } else {
+          const res = await workerManager.diffText(textA, textB, options, () => {
+            slowWarning = true;
+          });
+          diffResult = res;
+          nbDiffResult = null;
+          ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
+        }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Diff failed:', err);
+      diffResult = null;
+      nbDiffResult = null;
+
+      if (err instanceof DiffError || (typeof err === 'object' && err !== null && 'code' in err)) {
+        const dErr = err as DiffError;
+        if (dErr.code === 'INVALID_JSON') {
+          notebookJsonError = {
+            message: dErr.message,
+            line: dErr.line,
+            column: dErr.column
+          };
+        } else if (dErr.code === 'UNSUPPORTED_NBFORMAT') {
+          notebookFormatError = 'Only nbformat 4 notebooks are supported';
+        } else if (dErr.code === 'CANCELLED') {
+          diffErrorMessage =
+            'Diff took over 10 seconds and was cancelled. Try disabling character-level highlighting.';
+        } else {
+          diffErrorMessage = dErr.message;
+        }
+      } else {
+        diffErrorMessage = 'Diff calculation failed. Try comparing again.';
+      }
     } finally {
       isDiffing = false;
       showProgress = false;
       if (progressTimer) clearTimeout(progressTimer);
     }
+  }
+
+  function handleCompareAsPlainText() {
+    notebookJsonError = null;
+    notebookFormatError = null;
+    diffErrorMessage = null;
+    currentMode = 'text';
+    window.location.hash = '#text';
+    void runDiffNow();
   }
 
   async function handleLoadExample() {
@@ -588,150 +656,224 @@
 </header>
 
 <main id="main" class="container-wide" tabindex="-1">
-  <div class="container">
-    <section class="intro">
-      <h1>Diff Checker</h1>
-      <p>
-        A free, public web tool that compares two texts, scripts or Jupyter notebooks entirely in
-        your browser.
-      </p>
-      <p class="privacy-line">Runs entirely in your browser — nothing is uploaded.</p>
-
-      <!-- Mode Selector Tabs -->
-      <div class="mode-tabs-bar" role="tablist" aria-label="Diff comparison mode">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={currentMode === 'text'}
-          class="tab-btn {currentMode === 'text' ? 'active' : ''}"
-          onclick={() => {
-            currentMode = 'text';
-            window.location.hash = '#text';
-            void runDiffNow();
-          }}
-        >
-          📄 Text & Scripts
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={currentMode === 'notebook'}
-          class="tab-btn {currentMode === 'notebook' ? 'active' : ''}"
-          onclick={() => {
-            currentMode = 'notebook';
-            window.location.hash = '#notebook';
-            void runDiffNow();
-          }}
-        >
-          🪐 Jupyter Notebooks
-        </button>
+  <svelte:boundary>
+    {#snippet failed(error, reset)}
+      <div class="container">
+        <div class="card error-boundary-card" role="alert">
+          <h2>Something went wrong</h2>
+          <p class="error-boundary-msg">
+            {error instanceof Error ? error.message : String(error)}
+          </p>
+          <div class="boundary-actions">
+            <button type="button" class="btn-primary" onclick={reset}>Try again</button>
+            <button type="button" class="btn-secondary" onclick={() => window.location.reload()}>
+              Reload
+            </button>
+            <a
+              class="btn-secondary link-btn"
+              href="https://github.com/U77w41/diff-checker/issues"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Report an issue
+            </a>
+          </div>
+        </div>
       </div>
-    </section>
+    {/snippet}
 
-    {#if shareBannerError}
-      <div class="status-banner error" role="alert">
-        <span>⚠️ {shareBannerError}</span>
-        <button type="button" class="banner-close" onclick={() => (shareBannerError = null)}
-          >✕</button
-        >
-      </div>
-    {/if}
-
-    {#if storageError}
-      <div class="status-banner warning" role="alert">
-        <span>⚠️ {storageError}</span>
-        <button type="button" class="banner-close" onclick={() => (storageError = null)}>✕</button>
-      </div>
-    {/if}
-
-    <!-- Input Panels -->
-    <InputPanel
-      bind:textA
-      bind:textB
-      bind:fileNameA
-      bind:fileNameB
-      bind:rememberInputs
-      isDiffAvailable={diffResult !== null || nbDiffResult !== null}
-      onCompare={runDiffNow}
-      onLoadExample={handleLoadExample}
-      onLoadBundle={handleLoadBundle}
-      onToggleRememberInputs={(val) => {
-        rememberInputs = val;
-        persistSettings();
-      }}
-    />
-  </div>
-
-  <!-- Results Section -->
-  {#if showProgress}
-    <div class="progress-bar-container">
-      <div class="progress-bar" role="progressbar" aria-label="Computing diff..."></div>
-    </div>
-  {/if}
-
-  {#if slowWarning}
     <div class="container">
-      <div class="slow-warning card">
-        <span>Diff is taking longer than usual...</span>
-        <button
-          type="button"
-          class="btn-secondary"
-          onclick={() => {
-            workerManager.spawn();
-            isDiffing = false;
-            slowWarning = false;
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  {/if}
+      <section class="intro">
+        <h1>Diff Checker</h1>
+        <p>
+          A free, public web tool that compares two texts, scripts or Jupyter notebooks entirely in
+          your browser.
+        </p>
+        <p class="privacy-line">Runs entirely in your browser — nothing is uploaded.</p>
 
-  {#if currentMode === 'notebook' && nbDiffResult}
-    <div class="results-area">
-      <NotebookView
-        diffResult={nbDiffResult}
-        rawA={textA}
-        rawB={textB}
-        options={nbOptions}
-        onOptionsChange={(newOpts) => {
-          nbOptions = { ...nbOptions, ...newOpts };
-          void runDiffNow();
+        <!-- Mode Selector Tabs -->
+        <div class="mode-tabs-bar" role="tablist" aria-label="Diff comparison mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={currentMode === 'text'}
+            class="tab-btn {currentMode === 'text' ? 'active' : ''}"
+            onclick={() => {
+              currentMode = 'text';
+              window.location.hash = '#text';
+              void runDiffNow();
+            }}
+          >
+            📄 Text & Scripts
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={currentMode === 'notebook'}
+            class="tab-btn {currentMode === 'notebook' ? 'active' : ''}"
+            onclick={() => {
+              currentMode = 'notebook';
+              window.location.hash = '#notebook';
+              void runDiffNow();
+            }}
+          >
+            🪐 Jupyter Notebooks
+          </button>
+        </div>
+      </section>
+
+      {#if shareBannerError}
+        <div class="status-banner error" role="alert">
+          <span>⚠️ {shareBannerError}</span>
+          <button type="button" class="banner-close" onclick={() => (shareBannerError = null)}>
+            ✕
+          </button>
+        </div>
+      {/if}
+
+      {#if storageError}
+        <div class="status-banner warning" role="alert">
+          <span>⚠️ {storageError}</span>
+          <button type="button" class="banner-close" onclick={() => (storageError = null)}>
+            ✕
+          </button>
+        </div>
+      {/if}
+
+      {#if modeMismatchWarning}
+        <div class="status-banner warning" role="alert">
+          <span>⚠️ {modeMismatchWarning}</span>
+          <button type="button" class="banner-close" onclick={() => (modeMismatchWarning = null)}>
+            ✕
+          </button>
+        </div>
+      {/if}
+
+      {#if notebookJsonError}
+        <div class="status-banner error" role="alert">
+          <div>
+            <strong>Invalid notebook JSON:</strong>
+            {notebookJsonError.message}
+            {#if notebookJsonError.line !== undefined}
+              (Line {notebookJsonError.line}, Column {notebookJsonError.column})
+            {/if}
+          </div>
+          <button type="button" class="btn-secondary-banner" onclick={handleCompareAsPlainText}>
+            Compare as plain text instead
+          </button>
+        </div>
+      {/if}
+
+      {#if notebookFormatError}
+        <div class="status-banner error" role="alert">
+          <div>
+            <strong>Unsupported format:</strong>
+            {notebookFormatError}
+          </div>
+          <button type="button" class="btn-secondary-banner" onclick={handleCompareAsPlainText}>
+            Compare as plain text instead
+          </button>
+        </div>
+      {/if}
+
+      {#if diffErrorMessage}
+        <div class="status-banner error" role="alert">
+          <span>⚠️ {diffErrorMessage}</span>
+          <button type="button" class="btn-secondary-banner" onclick={() => void runDiffNow()}>
+            Retry
+          </button>
+        </div>
+      {/if}
+
+      <!-- Input Panels -->
+      <InputPanel
+        bind:textA
+        bind:textB
+        bind:fileNameA
+        bind:fileNameB
+        bind:rememberInputs
+        isDiffAvailable={diffResult !== null || nbDiffResult !== null}
+        onCompare={runDiffNow}
+        onLoadExample={handleLoadExample}
+        onLoadBundle={handleLoadBundle}
+        onToggleRememberInputs={(val) => {
+          rememberInputs = val;
+          persistSettings();
         }}
       />
     </div>
-  {:else if currentMode === 'text' && diffResult}
-    <div class="results-area">
-      <Toolbar
-        bind:options
-        bind:viewMode
-        bind:selectedLanguage
-        stats={diffResult.stats}
-        {chunkCount}
-        {currentChunk}
-        onPrevChange={handlePrevChange}
-        onNextChange={handleNextChange}
-        onCopyPatch={handleCopyPatch}
-        onDownloadPatch={handleDownloadPatch}
-        onShare={() => (isShareOpen = true)}
-        onHelp={() => (isHelpOpen = true)}
-      />
 
-      <TextView
-        bind:this={textViewComponent}
-        {textA}
-        {textB}
-        changes={diffResult.changes}
-        identical={diffResult.identical}
-        {options}
-        {viewMode}
-        {selectedLanguage}
-        onChunkCountChange={(count: number) => (chunkCount = count)}
-        onCurrentChunkChange={(curr: number) => (currentChunk = curr)}
-      />
-    </div>
-  {/if}
+    <!-- Results Section -->
+    {#if showProgress}
+      <div class="progress-bar-container">
+        <div class="progress-bar" role="progressbar" aria-label="Computing diff..."></div>
+      </div>
+    {/if}
+
+    {#if slowWarning}
+      <div class="container">
+        <div class="slow-warning card">
+          <span>Diff is taking longer than usual...</span>
+          <button
+            type="button"
+            class="btn-secondary"
+            onclick={() => {
+              workerManager.spawn();
+              isDiffing = false;
+              slowWarning = false;
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    {#if currentMode === 'notebook' && nbDiffResult}
+      <div class="results-area">
+        <NotebookView
+          diffResult={nbDiffResult}
+          rawA={textA}
+          rawB={textB}
+          options={nbOptions}
+          onOptionsChange={(newOpts) => {
+            nbOptions = { ...nbOptions, ...newOpts };
+            void runDiffNow();
+          }}
+        />
+      </div>
+    {:else if currentMode === 'text' && diffResult}
+      <div class="results-area">
+        <Toolbar
+          bind:options
+          bind:viewMode
+          bind:selectedLanguage
+          stats={diffResult.stats}
+          {chunkCount}
+          {currentChunk}
+          onPrevChange={handlePrevChange}
+          onNextChange={handleNextChange}
+          onCopyPatch={handleCopyPatch}
+          onDownloadPatch={handleDownloadPatch}
+          onShare={() => (isShareOpen = true)}
+          onHelp={() => (isHelpOpen = true)}
+        />
+
+        <TextView
+          bind:this={textViewComponent}
+          {textA}
+          {textB}
+          changes={diffResult.changes}
+          identical={diffResult.identical}
+          {options}
+          {viewMode}
+          {selectedLanguage}
+          onChunkCountChange={(count: number) => (chunkCount = count)}
+          onCurrentChunkChange={(curr: number) => (currentChunk = curr)}
+        />
+      </div>
+    {/if}
+  </svelte:boundary>
 </main>
 
 <footer class="site-footer">
@@ -876,6 +1018,8 @@
     border-radius: var(--radius-control);
     margin-bottom: 16px;
     font-size: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
   .status-banner.error {
@@ -902,6 +1046,55 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .btn-secondary-banner {
+    background: var(--card-background);
+    border: 1px solid var(--border-strong);
+    color: var(--text-main);
+    padding: 6px 12px;
+    border-radius: var(--radius-control);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+  }
+
+  .error-boundary-card {
+    padding: 24px;
+    margin: 24px 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .error-boundary-card h2 {
+    margin: 0;
+    color: var(--danger);
+    font-size: 1.3rem;
+  }
+
+  .error-boundary-msg {
+    color: var(--text-body);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .boundary-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    min-height: 44px;
+    padding: 0 16px;
   }
 
   @keyframes indeterminate {
