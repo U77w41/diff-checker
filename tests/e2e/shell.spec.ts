@@ -6,8 +6,8 @@ test.describe('Branded shell and header/footer', () => {
     await expect(page).toHaveTitle(/Diff Checker · Ujjwal Chowdhury/);
 
     const brand = page.locator('header a.brand');
-    await expect(brand).toHaveAttribute('href', 'https://u77w41.github.io/');
-    await expect(brand.locator('.brand-name')).toHaveText('Ujjwal Chowdhury');
+    await expect(brand).toHaveAttribute('href', './');
+    await expect(brand.locator('.brand-name')).toHaveText('Diff Checker');
   });
 
   test('Support my work links exist with correct attributes on desktop', async ({
@@ -74,5 +74,41 @@ test.describe('Branded shell and header/footer', () => {
     await page.goto('./');
     const html = page.locator('html');
     await expect(html).toHaveAttribute('data-scheme', 'dark');
+  });
+
+  test('tools dropdown opens, displays anurup, and closes on escape and outside click', async ({
+    page
+  }) => {
+    await page.goto('./');
+
+    const toggle = page.locator('button.menu-social-dropdown-toggle');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    const panel = page.locator('#menu-social-dropdown-tools');
+    await expect(panel).toBeHidden();
+
+    // Open dropdown
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(panel).toBeVisible();
+
+    // Check Anurup link inside
+    const anurupLink = panel.locator('a[href="https://u77w41.github.io/anurup/"]');
+    await expect(anurupLink).toBeVisible();
+    await expect(anurupLink).toContainText('ANURUP');
+
+    // Test Escape key closes dropdown and focuses toggle
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toBeFocused();
+
+    // Test Outside click closes dropdown
+    await toggle.click();
+    await expect(panel).toBeVisible();
+    await page.locator('body').click({ position: { x: 10, y: 10 } });
+    await expect(panel).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 });
