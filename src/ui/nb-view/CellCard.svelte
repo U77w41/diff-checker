@@ -621,6 +621,10 @@
   }
 
   .rendered-prose {
+    /* Keep untrusted markdown inside its cell, even position:fixed (audit S1). */
+    position: relative;
+    contain: layout paint;
+    overflow: auto;
     padding: 0.5rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);

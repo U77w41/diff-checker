@@ -57,21 +57,73 @@ export async function renderMath(content: string): Promise<string> {
   }
 }
 
-/**
- * Sanitizes HTML using DOMPurify to guarantee that no malicious payload executes.
- */
-export async function sanitizeHtml(html: string): Promise<string> {
-  const purify =
-    typeof DOMPurify.sanitize === 'function'
-      ? DOMPurify
-      : typeof DOMPurify === 'function' && typeof window !== 'undefined'
-        ? DOMPurify(window)
-        : null;
+/** Elements that let markdown imitate the app (fake forms) or restyle the page. */
+export const FORBIDDEN_MARKDOWN_TAGS: readonly string[] = [
+  'form',
+  'input',
+  'button',
+  'textarea',
+  'select',
+  'option',
+  'style'
+];
 
-  if (purify) {
-    return purify.sanitize(html);
+const SANITIZE_CONFIG = {
+  FORBID_TAGS: [...FORBIDDEN_MARKDOWN_TAGS],
+  SANITIZE_NAMED_PROPS: true
+};
+
+const ALLOWED_POSITIONS = new Set(['', 'static', 'relative']);
+
+function createPurifier(): ReturnType<typeof DOMPurify> | null {
+  if (typeof window === 'undefined') return null;
+  const purify = DOMPurify(window);
+  if (typeof purify.sanitize !== 'function') return null;
+
+  purify.addHook('afterSanitizeAttributes', (node) => {
+    if (!(node instanceof window.HTMLElement)) return;
+
+    // Rebuild inline styles from the parsed CSSOM. Declarations the parser can't read
+    // (including escaped names like posit\69on) are dropped rather than passed through.
+    if (node.hasAttribute('style')) {
+      if (!ALLOWED_POSITIONS.has(node.style.position)) node.style.removeProperty('position');
+      const canonical = node.style.cssText.trim();
+      if (canonical) node.setAttribute('style', canonical);
+      else node.removeAttribute('style');
+    }
+
+    // Links leave the app in a new tab instead of replacing the user's diff.
+    const href = node.tagName === 'A' ? node.getAttribute('href') : null;
+    if (href && !href.startsWith('#')) {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  return purify;
+}
+
+const purifier = createPurifier();
+
+/** Fallback used when no sanitizer is available: show the markup as text. */
+export function escapeHtmlFallback(html: string): string {
+  return html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Sanitizes rendered markdown. Fails closed: without DOMPurify the input is escaped.
+ */
+export function sanitizeHtml(html: string): string {
+  if (!purifier) {
+    console.warn('HTML sanitizer unavailable; showing markdown as plain text.');
+    return escapeHtmlFallback(html);
   }
-  return html;
+  return purifier.sanitize(html, SANITIZE_CONFIG);
 }
 
 /**
