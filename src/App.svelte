@@ -163,11 +163,8 @@
     nbOptions.hideNoisyMetadata = stored.hideMetadata;
     nbOptions.similarityThreshold = stored.similarityThreshold;
 
-    if (window.innerWidth < 768) {
-      viewMode = 'unified';
-    } else {
-      viewMode = stored.viewMode === 'unified' ? 'unified' : 'side-by-side';
-    }
+    // Always open side-by-side, on every device; the stored choice is written but not restored.
+    viewMode = 'side-by-side';
 
     if (stored.rememberInputs && stored.savedInputs) {
       textA = stored.savedInputs.textA || '';
@@ -179,12 +176,6 @@
     // Process initial hash route
     handleHashChange();
 
-    const handleResize = () => {
-      if (window.innerWidth < 768 && viewMode === 'side-by-side') {
-        viewMode = 'unified';
-      }
-    };
-    window.addEventListener('resize', handleResize);
     window.addEventListener('hashchange', handleHashChange);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -226,7 +217,6 @@
 
     return () => {
       cleanupTheme();
-      window.removeEventListener('resize', handleResize);
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('keydown', handleKeyDown);
     };

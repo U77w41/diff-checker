@@ -537,10 +537,6 @@
   }
 
   @media (max-width: 768px) {
-    .view-toggle-group {
-      display: none;
-    }
-
     .desktop-only {
       display: none !important;
     }

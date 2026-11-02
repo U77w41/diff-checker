@@ -53,7 +53,7 @@ Additional notebook features include:
 
 ### Accessibility and Responsive Design
 
-- Adapts to mobile screens below 768 px by switching to unified view and tucking secondary actions into a menu.
+- Works on mobile screens: side-by-side stays available with wrapped lines and line numbers, and secondary actions are tucked into a menu.
 - Blue and orange colour scheme tested for colour-blind contrast, paired with explicit `+` and `−` symbols.
 - Full keyboard navigation with screen reader live announcements for diff stats.
 - Progressive Web App (PWA) service worker caches application assets for offline use.

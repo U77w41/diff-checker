@@ -83,6 +83,7 @@
           EditorState.readOnly.of(true),
           EditorView.editable.of(false),
           keyboardScrollable,
+          EditorView.lineWrapping,
           lineNumbers(),
           diffCheckerTheme,
           ...langExts
@@ -131,6 +132,7 @@
               EditorState.readOnly.of(true),
               EditorView.editable.of(false),
               keyboardScrollable,
+              EditorView.lineWrapping,
               lineNumbers(),
               diffCheckerTheme,
               EditorView.contentAttributes.of({ 'aria-label': 'Unified diff (read-only)' }),
@@ -264,6 +266,13 @@
   .editor-container {
     width: 100%;
     min-height: 400px;
+  }
+
+  /* Narrow screens: keep both halves readable while lines wrap. */
+  @media (max-width: 767px) {
+    .editor-container :global(.cm-editor) {
+      font-size: 12px;
+    }
   }
 
   .identical-banner {

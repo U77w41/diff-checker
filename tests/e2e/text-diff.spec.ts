@@ -6,7 +6,6 @@ test.describe('Text & Scripts Diff Checker Rendering', () => {
     page,
     isMobile
   }) => {
-    test.skip(isMobile, 'Side-by-side is desktop-only; mobile always uses unified view');
     const pageErrors: string[] = [];
     page.on('pageerror', (err) => {
       pageErrors.push(err.message);
@@ -39,7 +38,10 @@ test.describe('Text & Scripts Diff Checker Rendering', () => {
     await expect(sideA.locator('.cm-changedText').first()).toBeVisible();
     await expect(sideB.locator('.cm-changedText').first()).toBeVisible();
 
-    // Switch to character granularity
+    // Switch to character granularity (inside the ⋯ menu on mobile)
+    if (isMobile) {
+      await page.locator('.menu-toggle-btn').click();
+    }
     const charBtn = page.getByRole('button', { name: 'Character', exact: true });
     await charBtn.click();
     await expect(charBtn).toHaveAttribute('aria-pressed', 'true');
@@ -77,10 +79,8 @@ test.describe('Text & Scripts Diff Checker Rendering', () => {
     await inputA.fill('hello world\nunchanged\nold line');
     await inputB.fill('hello planet\nunchanged\nnew line');
 
-    // Switch to Unified mode (mobile is already unified and hides the toggle)
-    if (!isMobile) {
-      await page.getByRole('button', { name: 'Unified', exact: true }).click();
-    }
+    // Switch to Unified mode (side-by-side is the default on every device)
+    await page.getByRole('button', { name: 'Unified', exact: true }).click();
     await page.getByRole('button', { name: /Compare/i }).click();
 
     // Verify change stats visible

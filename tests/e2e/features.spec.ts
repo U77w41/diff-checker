@@ -77,19 +77,16 @@ test.describe('Phase 5 Features: Hash routing, Share links, Shortcuts, and Mobil
     await expect(inputA).not.toHaveValue('');
   });
 
-  test('mobile layout hides side-by-side and displays folded menu button', async ({
-    page,
-    isMobile
-  }) => {
+  test('mobile layout shows the view toggle and folded menu', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'Mobile only');
     await page.goto('./');
 
     // Load example so toolbar appears
     await page.getByRole('button', { name: 'Try an example' }).click();
 
-    // Side-by-side view button should be hidden on mobile
+    // Side-by-side / Unified toggle stays available on mobile
     const viewToggle = page.locator('.view-toggle-group');
-    await expect(viewToggle).toBeHidden();
+    await expect(viewToggle).toBeVisible();
 
     // ⋯ Menu toggle should be visible
     const menuToggle = page.locator('.menu-toggle-btn');
