@@ -31,14 +31,16 @@
 ### Task 1: Update CSS Tokens & Container Rules in `theme.css`
 
 **Files:**
+
 - Modify: `src/app/theme.css:43-46`, `src/app/theme.css:197-209`
 - Test: `tests/e2e/layout.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Existing `--gutter`, `--container`, `--container-wide` tokens in `src/app/theme.css`.
 - Produces: Responsive `--gutter` tokens (`16px`, `24px`, `32px`) and `100%` width rules for `.container` and `.container-wide`.
 
-- [ ] **Step 1: Write failing layout E2E test in `tests/e2e/layout.spec.ts`**
+- [x] **Step 1: Write failing layout E2E test in `tests/e2e/layout.spec.ts`**
 
 ```ts
 import { test, expect } from '@playwright/test';
@@ -69,23 +71,26 @@ test.describe('Full-Width Fluid Layout', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx playwright test tests/e2e/layout.spec.ts --project=chromium`
 Expected: FAIL (headerBox.width is 960px, not >= 1800px).
 
-- [ ] **Step 3: Update `src/app/theme.css` with fluid container tokens & responsive gutters**
+- [x] **Step 3: Update `src/app/theme.css` with fluid container tokens & responsive gutters**
 
 In `src/app/theme.css`:
+
 ```css
-  --radius-card: 10px;
-  --radius-control: 8px;
-  --radius-tag: 4px;
-  --container: 100%;
-  --container-wide: 100%;
-  --gutter: 16px;
+--radius-card: 10px;
+--radius-control: 8px;
+--radius-tag: 4px;
+--container: 100%;
+--container-wide: 100%;
+--gutter: 16px;
 ```
+
 Add responsive gutter queries:
+
 ```css
 @media (min-width: 768px) {
   :root {
@@ -99,7 +104,9 @@ Add responsive gutter queries:
   }
 }
 ```
+
 Update `.container` and `.container-wide`:
+
 ```css
 .container,
 .container-wide {
@@ -110,12 +117,12 @@ Update `.container` and `.container-wide`:
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx playwright test tests/e2e/layout.spec.ts --project=chromium`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add src/app/theme.css tests/e2e/layout.spec.ts
@@ -127,25 +134,28 @@ git commit -m "style: switch container tokens to full-width fluid with responsiv
 ### Task 2: Fix Nested Double-Gutter Padding & Container Alignment in `App.svelte`
 
 **Files:**
+
 - Modify: `src/App.svelte:761-788`, `src/App.svelte:941-943`, `src/App.svelte:1080-1090`
 - Test: `tests/e2e/layout.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Updated `.container` and `.container-wide` from `src/app/theme.css`.
 - Produces: Pixel-aligned input panels and diff results without nested double gutters.
 
-- [ ] **Step 1: Add alignment and zero-overflow assertions to `tests/e2e/layout.spec.ts`**
+- [x] **Step 1: Add alignment and zero-overflow assertions to `tests/e2e/layout.spec.ts`**
 
 Add tests to `tests/e2e/layout.spec.ts`:
+
 - Check that the input panel bounding box left edge aligns with the header inner left edge on desktop (`Math.abs(inputBox.x - headerBox.x) <= 2`).
 - Check that there is zero horizontal scrollbar/overflow across 375px, 768px, 1280px, 1440px, and 1920px viewports (`scrollWidth === clientWidth`).
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx playwright test tests/e2e/layout.spec.ts --project=chromium`
 Expected: FAIL on alignment because `<div class="container">` inside `<main class="container-wide">` has double gutter padding.
 
-- [ ] **Step 3: Update `src/App.svelte` container markup and CSS**
+- [x] **Step 3: Update `src/App.svelte` container markup and CSS**
 
 1. In `<main id="main" class="container-wide" tabindex="-1">`:
    - Replace `<div class="container">` wrapping the intro, tabs, and `InputPanel` with `<div class="workspace-inputs">`.
@@ -153,12 +163,12 @@ Expected: FAIL on alignment because `<div class="container">` inside `<main clas
 2. Replace `<div class="container">` wrapping `.slow-warning` with `<div class="workspace-inputs">`.
 3. Ensure `.results-area` maintains `width: 100%;` without extra outer margins.
 
-- [ ] **Step 4: Run layout tests to verify they pass**
+- [x] **Step 4: Run layout tests to verify they pass**
 
 Run: `npx playwright test tests/e2e/layout.spec.ts --project=chromium`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add src/App.svelte tests/e2e/layout.spec.ts
@@ -170,38 +180,40 @@ git commit -m "fix(layout): remove nested container gutter doubling and align wo
 ### Task 3: Regression Verification & Accessibility Audit
 
 **Files:**
+
 - Modify/Verify: `tests/e2e/shell.spec.ts`, `tests/e2e/a11y.spec.ts`
 
 **Interfaces:**
+
 - Consumes: All updated components and styles.
 - Produces: Clean test run across all verification gates.
 
-- [ ] **Step 1: Run type checking**
+- [x] **Step 1: Run type checking**
 
 Run: `npm run typecheck`
 Expected: 0 errors and 0 warnings
 
-- [ ] **Step 2: Run linter and formatter check**
+- [x] **Step 2: Run linter and formatter check**
 
 Run: `npm run lint`
 Expected: Clean exit code 0
 
-- [ ] **Step 3: Run Vitest unit tests**
+- [x] **Step 3: Run Vitest unit tests**
 
 Run: `npm test`
 Expected: 155/155 tests passing
 
-- [ ] **Step 4: Run bundle size check**
+- [x] **Step 4: Run bundle size check**
 
 Run: `npm run build && npm run size`
 Expected: Brotlied bundle size $\le 250$ KB
 
-- [ ] **Step 5: Run Playwright E2E and axe-core accessibility suite**
+- [x] **Step 5: Run Playwright E2E and axe-core accessibility suite**
 
 Run: `npx playwright test tests/e2e/layout.spec.ts tests/e2e/shell.spec.ts tests/e2e/a11y.spec.ts --project=chromium`
 Expected: All tests pass with 0 WCAG 2.1 AA violations
 
-- [ ] **Step 6: Commit test updates**
+- [x] **Step 6: Commit test updates**
 
 ```bash
 git add tests/

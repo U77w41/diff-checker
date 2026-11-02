@@ -40,6 +40,7 @@ Transition Diff Checker from a narrow, constrained box layout (`--container: 960
 ### 1. Token Updates in `src/app/theme.css`
 
 Update container and gutter design tokens:
+
 ```css
 :root {
   --gutter: 16px;
@@ -61,6 +62,7 @@ Update container and gutter design tokens:
 ```
 
 Update `.container` and `.container-wide` rules:
+
 ```css
 .container,
 .container-wide {
