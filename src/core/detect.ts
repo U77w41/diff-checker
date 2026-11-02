@@ -35,10 +35,10 @@ export function detectInputMode(fileName?: string, content?: string): InputMode 
 }
 
 /**
- * Notebook diffs need two notebooks. While only one side has content, wait instead of
- * parsing the empty side (which would fail as invalid JSON).
+ * Notebook diffs need two notebooks. While either side is blank, wait instead of parsing
+ * it (an empty or whitespace-only side would fail as invalid JSON).
  */
 export function shouldWaitForSecondNotebook(mode: InputMode, a: string, b: string): boolean {
   if (mode !== 'notebook') return false;
-  return (a.trim() === '') !== (b.trim() === '');
+  return a.trim() === '' || b.trim() === '';
 }

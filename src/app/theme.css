@@ -493,6 +493,15 @@ main#main {
     justify-content: center;
     text-align: center;
   }
+
+  .footer-meta {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .footer-sep {
+    display: none;
+  }
 }
 
 /* ---------- Responsive ---------- */

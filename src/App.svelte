@@ -40,6 +40,14 @@
 
   let currentMode = $state<InputMode>('text');
   let notebookWaiting = $state(false);
+  // Each runDiffNow call gets an id; results from a superseded call are dropped.
+  let diffRunId = 0;
+
+  function stopBusyIndicators() {
+    isDiffing = false;
+    showProgress = false;
+    if (progressTimer) clearTimeout(progressTimer);
+  }
   let diffResult = $state<TextDiffResult | null>(null);
   let nbDiffResult = $state<NotebookDiffResult | null>(null);
   let nbOptions = $state<NbDiffOptions>({ ...DEFAULT_NB_DIFF_OPTIONS });
@@ -292,6 +300,7 @@
 
   async function runDiffNow() {
     if (debounceTimer) clearTimeout(debounceTimer);
+    const runId = ++diffRunId;
     if (textA.length === 0 && textB.length === 0) {
       diffResult = null;
       nbDiffResult = null;
@@ -300,6 +309,7 @@
       diffErrorMessage = null;
       modeMismatchWarning = null;
       notebookWaiting = false;
+      stopBusyIndicators();
       return;
     }
 
@@ -312,6 +322,8 @@
       diffErrorMessage = null;
       modeMismatchWarning = null;
       notebookWaiting = true;
+      ariaAnnouncement = 'Add the other notebook to compare.';
+      stopBusyIndicators();
       return;
     }
     notebookWaiting = false;
@@ -343,6 +355,7 @@
         const res = await workerManager.diffText(textA, textB, $state.snapshot(options), () => {
           slowWarning = true;
         });
+        if (runId !== diffRunId) return;
         diffResult = res;
         nbDiffResult = null;
         ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
@@ -357,6 +370,7 @@
               slowWarning = true;
             }
           );
+          if (runId !== diffRunId) return;
           nbDiffResult = res;
           diffResult = null;
           ariaAnnouncement = `Notebook diff: ${res.stats.modified} modified, ${res.stats.added} added, ${res.stats.deleted} deleted, ${res.stats.moved} moved`;
@@ -364,12 +378,14 @@
           const res = await workerManager.diffText(textA, textB, $state.snapshot(options), () => {
             slowWarning = true;
           });
+          if (runId !== diffRunId) return;
           diffResult = res;
           nbDiffResult = null;
           ariaAnnouncement = `${res.stats.added} additions, ${res.stats.removed} deletions`;
         }
       }
     } catch (err: unknown) {
+      if (runId !== diffRunId) return;
       console.error('Diff failed:', err);
       diffResult = null;
       nbDiffResult = null;
@@ -394,9 +410,7 @@
         diffErrorMessage = 'Diff calculation failed. Try comparing again.';
       }
     } finally {
-      isDiffing = false;
-      showProgress = false;
-      if (progressTimer) clearTimeout(progressTimer);
+      if (runId === diffRunId) stopBusyIndicators();
     }
   }
 
@@ -835,7 +849,7 @@
       />
 
       {#if notebookWaiting}
-        <p class="status-banner info" role="status">Add the other notebook to compare.</p>
+        <p class="status-banner info">Add the other notebook to compare.</p>
       {/if}
     </div>
 
@@ -919,7 +933,7 @@
   <div class="container footer-row">
     <p class="footer-meta">
       <span class="copyright">{copyrightText}</span>
-      <span aria-hidden="true">·</span>
+      <span class="footer-sep" aria-hidden="true">·</span>
       <span>Runs entirely in your browser</span>
     </p>
     <nav class="footer-nav" aria-label="Footer">

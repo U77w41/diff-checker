@@ -195,6 +195,7 @@ test.describe('Branded shell and header/footer', () => {
     const nav = page.locator('footer .footer-nav');
     await expect(meta).toHaveCSS('text-align', 'center');
     await expect(nav).toHaveCSS('justify-content', 'center');
+    await expect(page.locator('.footer-sep')).toBeHidden();
     const metaBox = await meta.boundingBox();
     const navBox = await nav.boundingBox();
     expect(navBox!.y).toBeGreaterThanOrEqual(metaBox!.y + metaBox!.height - 1);

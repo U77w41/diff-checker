@@ -173,6 +173,7 @@
     warningA = null;
     warningB = null;
     isCollapsed = false;
+    onCompare(); // both sides empty: clears results, errors and the notebook hint
   }
 
   function handleDrop(e: DragEvent, side: 'A' | 'B') {

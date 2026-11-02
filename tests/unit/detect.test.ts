@@ -43,7 +43,9 @@ describe('shouldWaitForSecondNotebook', () => {
     ['notebook', '', nb, true],
     ['notebook', nb, '\n  ', true],
     ['notebook', nb, nb, false],
-    ['notebook', '', '', false],
+    ['notebook', '', '', true],
+    ['notebook', ' ', '', true],
+    ['notebook', ' ', '  ', true],
     ['text', 'x', '', false]
   ] as const)('(%s, %j, %j) → %s', (mode, a, b, expected) => {
     expect(shouldWaitForSecondNotebook(mode, a, b)).toBe(expected);
