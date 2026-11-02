@@ -32,6 +32,7 @@
 ### Task 1: Generate High-Resolution PWA Icon Assets
 
 **Files:**
+
 - Create: `public/pwa-192.png`
 - Create: `public/pwa-512.png`
 - Create: `public/pwa-maskable-512.png`
@@ -40,11 +41,13 @@
 - Test: `tests/unit/pwa-icons.test.ts`
 
 **Interfaces:**
+
 - Produces: PNG and ICO icon assets in `public/` matching required dimensions for Chromium and iOS PWA installation criteria.
 
 - [ ] **Step 1: Write the failing unit test for PWA icon assets**
 
 Create `tests/unit/pwa-icons.test.ts`:
+
 ```ts
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
@@ -93,6 +96,7 @@ Expected: FAIL (missing icon files).
 - [ ] **Step 3: Generate the icon files from brand SVG**
 
 Use a generation script with Playwright/canvas to render `public/favicon.svg` into:
+
 - `public/pwa-192.png` (192×192 with `#f5f5fa` background and centered logo)
 - `public/pwa-512.png` (512×512 with `#f5f5fa` background and centered logo)
 - `public/pwa-maskable-512.png` (512×512 with `#f5f5fa` background, logo scaled to 70% safe zone)
@@ -116,17 +120,20 @@ git commit -m "feat(pwa): add standard pwa png and apple touch icons"
 ### Task 2: Configure Web App Manifest and HTML Icon Links
 
 **Files:**
+
 - Modify: `vite.config.ts`
 - Modify: `index.html`
 - Test: `tests/unit/manifest.test.ts`
 
 **Interfaces:**
+
 - Consumes: Icon assets from Task 1.
 - Produces: Web App Manifest in build output with complete icon declarations and PWA metadata.
 
 - [ ] **Step 1: Write failing unit test for manifest configuration**
 
 Create `tests/unit/manifest.test.ts`:
+
 ```ts
 import { describe, it, expect } from 'vitest';
 import viteConfig from '../../vite.config';
@@ -134,7 +141,9 @@ import viteConfig from '../../vite.config';
 describe('Vite PWA Manifest Configuration', () => {
   it('has complete PWA metadata and icon entries', async () => {
     const config = typeof viteConfig === 'function' ? await viteConfig({} as any) : viteConfig;
-    const pwaPlugin = config.plugins?.flat().find((p: any) => p && p.name === 'vite-plugin-pwa') as any;
+    const pwaPlugin = config.plugins
+      ?.flat()
+      .find((p: any) => p && p.name === 'vite-plugin-pwa') as any;
     expect(pwaPlugin).toBeDefined();
 
     // Check VitePWA plugin options through plugin API or build config
@@ -143,11 +152,13 @@ describe('Vite PWA Manifest Configuration', () => {
   });
 });
 ```
+
 Or check build output `dist/manifest.webmanifest` content and `index.html` link tags.
 
 - [ ] **Step 2: Update `vite.config.ts`**
 
 Update `manifest` in `VitePWA`:
+
 ```ts
       manifest: {
         name: 'Diff Checker',
@@ -192,10 +203,11 @@ Update `manifest` in `VitePWA`:
 - [ ] **Step 3: Update `index.html`**
 
 Add link tags for apple touch icon and alternate favicon:
+
 ```html
-    <link rel="icon" type="image/svg+xml" href="/diff-checker/favicon.svg" />
-    <link rel="alternate icon" href="/diff-checker/favicon.ico" />
-    <link rel="apple-touch-icon" href="/diff-checker/apple-touch-icon.png" />
+<link rel="icon" type="image/svg+xml" href="/diff-checker/favicon.svg" />
+<link rel="alternate icon" href="/diff-checker/favicon.ico" />
+<link rel="apple-touch-icon" href="/diff-checker/apple-touch-icon.png" />
 ```
 
 - [ ] **Step 4: Build and test manifest verification**
@@ -215,11 +227,13 @@ git commit -m "feat(pwa): configure full web app manifest with png icons and app
 ### Task 3: Implement In-App Install Button and Lifecycle in `App.svelte` & `theme.css`
 
 **Files:**
+
 - Modify: `src/App.svelte`
 - Modify: `src/app/theme.css`
 - Test: `tests/e2e/pwa-install.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Browser `beforeinstallprompt` and `appinstalled` DOM events.
 - Produces: Interactive install button with `data-testid="install-app"` placed between `Support my work` and `#theme-toggle`.
 
@@ -323,91 +337,94 @@ Expected: FAIL (button does not exist).
 - [ ] **Step 3: Implement PWA install state and handlers in `src/App.svelte`**
 
 In script:
+
 ```ts
-  interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-  }
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
-  let deferredInstallPrompt = $state<BeforeInstallPromptEvent | null>(null);
-  let canInstall = $state(false);
+let deferredInstallPrompt = $state<BeforeInstallPromptEvent | null>(null);
+let canInstall = $state(false);
 
-  async function handleInstallApp() {
-    if (!deferredInstallPrompt) return;
-    const promptEvent = deferredInstallPrompt;
-    deferredInstallPrompt = null;
-    canInstall = false;
-    try {
-      await promptEvent.prompt();
-      await promptEvent.userChoice;
-    } catch {
-      // Ignore user cancellation or prompt errors
-    }
+async function handleInstallApp() {
+  if (!deferredInstallPrompt) return;
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  canInstall = false;
+  try {
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+  } catch {
+    // Ignore user cancellation or prompt errors
   }
+}
 ```
 
 In `onMount`:
+
 ```ts
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      Boolean((navigator as any).standalone);
+const isStandalone =
+  window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as any).standalone);
 
-    function onBeforeInstallPrompt(e: Event) {
-      if (isStandalone) return;
-      e.preventDefault();
-      deferredInstallPrompt = e as BeforeInstallPromptEvent;
-      canInstall = true;
-    }
+function onBeforeInstallPrompt(e: Event) {
+  if (isStandalone) return;
+  e.preventDefault();
+  deferredInstallPrompt = e as BeforeInstallPromptEvent;
+  canInstall = true;
+}
 
-    function onAppInstalled() {
-      deferredInstallPrompt = null;
-      canInstall = false;
-    }
+function onAppInstalled() {
+  deferredInstallPrompt = null;
+  canInstall = false;
+}
 
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-    window.addEventListener('appinstalled', onAppInstalled);
+window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+window.addEventListener('appinstalled', onAppInstalled);
 
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', onAppInstalled);
-    };
+return () => {
+  window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  window.removeEventListener('appinstalled', onAppInstalled);
+};
 ```
 
 In markup (inside `site-nav ul`, placed after `support-link-item`):
+
 ```svelte
-        {#if canInstall}
-          <li>
-            <button
-              type="button"
-              class="install-app-btn"
-              data-testid="install-app"
-              onclick={handleInstallApp}
-              aria-label="Install Diff Checker as an app"
-              title="Install Diff Checker as an app"
-            >
-              <svg
-                class="nav-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span class="nav-label">Install</span>
-            </button>
-          </li>
-        {/if}
+{#if canInstall}
+  <li>
+    <button
+      type="button"
+      class="install-app-btn"
+      data-testid="install-app"
+      onclick={handleInstallApp}
+      aria-label="Install Diff Checker as an app"
+      title="Install Diff Checker as an app"
+    >
+      <svg
+        class="nav-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      <span class="nav-label">Install</span>
+    </button>
+  </li>
+{/if}
 ```
 
 - [ ] **Step 4: Update styles in `src/app/theme.css`**
 
 Add styling for `.install-app-btn` matching `site-nav a` and mobile collapse:
+
 ```css
 .site-nav button.install-app-btn {
   display: inline-flex;
@@ -423,7 +440,9 @@ Add styling for `.install-app-btn` matching `site-nav a` and mobile collapse:
   border: none;
   cursor: pointer;
   font-family: inherit;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .site-nav button.install-app-btn:hover {
@@ -433,23 +452,24 @@ Add styling for `.install-app-btn` matching `site-nav a` and mobile collapse:
 ```
 
 In responsive media query (`@media (max-width: 768px)`):
+
 ```css
-  .site-nav button.install-app-btn span.nav-label {
-    display: none;
-  }
+.site-nav button.install-app-btn span.nav-label {
+  display: none;
+}
 
-  .site-nav button.install-app-btn {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    justify-content: center;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-  }
+.site-nav button.install-app-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
 
-  .site-nav button.install-app-btn:hover {
-    border-color: var(--border-strong);
-  }
+.site-nav button.install-app-btn:hover {
+  border-color: var(--border-strong);
+}
 ```
 
 - [ ] **Step 5: Run Playwright test to verify it passes**
@@ -469,24 +489,25 @@ git commit -m "feat(pwa): add reactive in-app install button to header"
 ### Task 4: Complete Verification & Regression Testing
 
 **Files:**
+
 - Test all existing and new test suites
 
 - [ ] **Step 1: Run type checking**
-Run: `npm run typecheck`
-Expected: 0 errors, 0 warnings.
+      Run: `npm run typecheck`
+      Expected: 0 errors, 0 warnings.
 
 - [ ] **Step 2: Run linter and formatter check**
-Run: `npm run lint`
-Expected: 0 errors, all files formatted.
+      Run: `npm run lint`
+      Expected: 0 errors, all files formatted.
 
 - [ ] **Step 3: Run Vitest unit tests**
-Run: `npm test`
-Expected: All unit tests pass.
+      Run: `npm test`
+      Expected: All unit tests pass.
 
 - [ ] **Step 4: Run bundle size check**
-Run: `npm run size`
-Expected: $\le 250\text{ KB}$.
+      Run: `npm run size`
+      Expected: $\le 250\text{ KB}$.
 
 - [ ] **Step 5: Run full Playwright test suite**
-Run: `npx playwright test --project=chromium`
-Expected: All tests pass.
+      Run: `npx playwright test --project=chromium`
+      Expected: All tests pass.

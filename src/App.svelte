@@ -245,9 +245,13 @@
     };
     window.addEventListener('keydown', handleKeyDown);
 
+    interface NavigatorWithStandalone extends Navigator {
+      standalone?: boolean;
+    }
+
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      Boolean((navigator as any).standalone);
+      Boolean((navigator as NavigatorWithStandalone).standalone);
 
     function onBeforeInstallPrompt(e: Event) {
       if (isStandalone) return;

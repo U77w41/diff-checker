@@ -31,8 +31,6 @@ describe('Web App Manifest & HTML Icon Configuration', () => {
     expect(content).toContain(
       '<link rel="apple-touch-icon" href="/diff-checker/apple-touch-icon.png"'
     );
-    expect(content).toContain(
-      '<link rel="alternate icon" href="/diff-checker/favicon.ico"'
-    );
+    expect(content).toContain('<link rel="alternate icon" href="/diff-checker/favicon.ico"');
   });
 });

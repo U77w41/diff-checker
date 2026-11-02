@@ -1,5 +1,14 @@
 import { test, expect } from '@playwright/test';
 
+interface MockBeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+interface WindowWithPromptCallback extends Window {
+  onPromptCalled?: () => void;
+}
+
 test.describe('PWA In-App Install Button', () => {
   test('does not show install button by default before beforeinstallprompt event', async ({
     page
@@ -17,9 +26,9 @@ test.describe('PWA In-App Install Button', () => {
 
     // Simulate beforeinstallprompt event
     await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt');
-      (event as any).prompt = () => Promise.resolve();
-      (event as any).userChoice = Promise.resolve({ outcome: 'accepted' });
+      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
+      event.prompt = () => Promise.resolve();
+      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
       window.dispatchEvent(event);
     });
 
@@ -51,11 +60,11 @@ test.describe('PWA In-App Install Button', () => {
     await page.exposeFunction('onPromptCalled', () => {});
 
     await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt');
-      (event as any).prompt = async () => {
-        (window as any).onPromptCalled();
+      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
+      event.prompt = async () => {
+        (window as WindowWithPromptCallback).onPromptCalled?.();
       };
-      (event as any).userChoice = Promise.resolve({ outcome: 'accepted' });
+      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
       window.dispatchEvent(event);
     });
 
@@ -69,9 +78,9 @@ test.describe('PWA In-App Install Button', () => {
     await page.goto('./');
 
     await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt');
-      (event as any).prompt = () => Promise.resolve();
-      (event as any).userChoice = Promise.resolve({ outcome: 'accepted' });
+      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
+      event.prompt = () => Promise.resolve();
+      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
       window.dispatchEvent(event);
     });
 
@@ -90,9 +99,9 @@ test.describe('PWA In-App Install Button', () => {
     await page.goto('./');
 
     await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt');
-      (event as any).prompt = () => Promise.resolve();
-      (event as any).userChoice = Promise.resolve({ outcome: 'accepted' });
+      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
+      event.prompt = () => Promise.resolve();
+      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
       window.dispatchEvent(event);
     });
 
@@ -129,9 +138,9 @@ test.describe('PWA In-App Install Button', () => {
     await page.goto('./');
 
     await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt');
-      (event as any).prompt = () => Promise.resolve();
-      (event as any).userChoice = Promise.resolve({ outcome: 'accepted' });
+      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
+      event.prompt = () => Promise.resolve();
+      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
       window.dispatchEvent(event);
     });
 
