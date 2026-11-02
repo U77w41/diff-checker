@@ -40,8 +40,8 @@
   --radius-card: 10px;
   --radius-control: 8px;
   --radius-tag: 4px;
-  --container: 960px; /* header, footer, intro text */
-  --container-wide: 1440px; /* new: results area, for side-by-side diffs */
+  --container: 100%;
+  --container-wide: 100%;
   --gutter: 16px;
 
   /* New for the diff tool: colour-blind-safe blue (added) / orange (removed) */
@@ -90,6 +90,18 @@
   --diff-move: #c4b5fd;
   --diff-move-bg: rgba(196, 181, 253, 0.12);
   color-scheme: dark;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --gutter: 32px;
+  }
 }
 
 *,
@@ -194,16 +206,10 @@ code,
   top: 12px;
 }
 
-.container {
-  width: 100%;
-  max-width: var(--container);
-  margin: 0 auto;
-  padding: 0 var(--gutter);
-}
-
+.container,
 .container-wide {
   width: 100%;
-  max-width: var(--container-wide);
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 var(--gutter);
 }
