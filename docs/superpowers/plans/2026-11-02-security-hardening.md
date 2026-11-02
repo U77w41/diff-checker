@@ -34,33 +34,37 @@
 ### Task 1: Upgrade DOMPurify (S2)
 
 **Files:**
+
 - Modify: `package.json` (`"dompurify": "3.4.17"`), `package-lock.json`
 - Test: `tests/unit/security.test.ts` (existing suite must pass unchanged)
 
 **Interfaces:**
+
 - Produces: `dompurify@3.4.17` available to Task 2.
 
 - [ ] **Step 1: Confirm the advisory is present**
-  Run: `npm audit --omit=dev --audit-level=high`
-  Expected: exit 1, `dompurify` listed as high.
+      Run: `npm audit --omit=dev --audit-level=high`
+      Expected: exit 1, `dompurify` listed as high.
 - [ ] **Step 2: Pin the new version**
-  Run: `npm install dompurify@3.4.17 --save-exact`
-  Remove `@types/dompurify` if 3.4.x ships its own types (check `node_modules/dompurify/dist/purify.es.d.mts`). Keep it only if `npm run typecheck` fails without it.
+      Run: `npm install dompurify@3.4.17 --save-exact`
+      Remove `@types/dompurify` if 3.4.x ships its own types (check `node_modules/dompurify/dist/purify.es.d.mts`). Keep it only if `npm run typecheck` fails without it.
 - [ ] **Step 3: Verify**
-  Run: `npm audit --omit=dev --audit-level=high` → exit 0. Run the full gate → all green.
+      Run: `npm audit --omit=dev --audit-level=high` → exit 0. Run the full gate → all green.
 - [ ] **Step 4: Commit**
-  `git commit -m "fix(deps): upgrade dompurify to 3.4.17 (GHSA-h8r8-wccr-v5f2 et al.)"`
+      `git commit -m "fix(deps): upgrade dompurify to 3.4.17 (GHSA-h8r8-wccr-v5f2 et al.)"`
 
 ---
 
 ### Task 2: Hardened markdown sanitizer + containment (S1, S4, S8)
 
 **Files:**
+
 - Modify: `src/ui/nb-view/renderers/markdown.ts` (replace `sanitizeHtml`)
 - Modify: `src/ui/nb-view/CellCard.svelte` (`.rendered-prose` style block, ~line 623)
 - Test: `tests/unit/security.test.ts` (add cases), `tests/e2e/security.spec.ts` (create)
 
 **Interfaces:**
+
 - Consumes: DOMPurify 3.4.17 (Task 1).
 - Produces: `export function sanitizeHtml(html: string): string` (now **synchronous**; update the one caller in `renderMarkdown`). `export const FORBIDDEN_MARKDOWN_TAGS: readonly string[]`.
 
@@ -74,13 +78,20 @@ it('removes forms and form controls', async () => {
   expect(html).not.toMatch(/<form|<input|<button/);
 });
 it('strips fixed/absolute/sticky positioning, including CSS escapes', async () => {
-  for (const s of ['position:fixed', 'position: absolute', 'posit\\69on:fixed', 'position:sticky']) {
+  for (const s of [
+    'position:fixed',
+    'position: absolute',
+    'posit\\69on:fixed',
+    'position:sticky'
+  ]) {
     const html = await renderMarkdown(`<div style="${s};inset:0">x</div>`);
     expect(html).not.toMatch(/fixed|absolute|sticky/);
   }
 });
 it('keeps relative positioning and KaTeX inline styles', async () => {
-  const html = await renderMarkdown('$$\\frac{a}{b}$$\n\n<span style="position:relative;top:1px">r</span>');
+  const html = await renderMarkdown(
+    '$$\\frac{a}{b}$$\n\n<span style="position:relative;top:1px">r</span>'
+  );
   expect(html).toContain('class="katex');
   expect(html).toMatch(/style="[^"]*vertical-align/);
   expect(html).toMatch(/position:\s*relative/);
@@ -96,7 +107,9 @@ it('opens external links in a new tab safely, leaves anchors alone', async () =>
   expect(anchor).not.toContain('target=');
 });
 it('namespaces id/name to prevent DOM clobbering', async () => {
-  const html = await renderMarkdown('<img id="app" name="settings" src="data:image/png;base64,AA==">');
+  const html = await renderMarkdown(
+    '<img id="app" name="settings" src="data:image/png;base64,AA==">'
+  );
   expect(html).toContain('id="user-content-app"');
   expect(html).not.toMatch(/\bid="app"/);
 });
@@ -106,7 +119,7 @@ it('fails closed: escapes html when no sanitizer is available', () => {
 ```
 
 - [ ] **Step 2: Run, confirm failures**
-  Run: `npx vitest run tests/unit/security.test.ts` → the 7 new tests FAIL.
+      Run: `npx vitest run tests/unit/security.test.ts` → the 7 new tests FAIL.
 - [ ] **Step 3: Implement in `markdown.ts`**
   - Module-level: `const purify = typeof window !== 'undefined' ? DOMPurify(window) : null;`, a single instance so the hooks can't leak into other users of DOMPurify.
   - `FORBIDDEN_MARKDOWN_TAGS = ['form', 'input', 'button', 'textarea', 'select', 'option', 'style']`.
@@ -127,6 +140,7 @@ it('fails closed: escapes html when no sanitizer is available', () => {
 ### Task 3: Tighten CSP (S1, S6)
 
 **Files:**
+
 - Modify: `index.html` (CSP meta)
 - Test: `tests/unit/csp.test.ts` (create, node env)
 
@@ -152,10 +166,12 @@ expect(csp['base-uri']).toEqual(["'self'"]);
 ### Task 4: Validate share links and bundles (S5, S9)
 
 **Files:**
+
 - Modify: `src/core/share.ts`, `src/core/patch.ts`, `src/App.svelte` (lines ~137–142 and ~257–262: use the sanitized options)
 - Test: `tests/unit/share.test.ts`, `tests/unit/patch.test.ts`
 
 **Interfaces:**
+
 - Produces (in `share.ts`):
   - `export const MAX_SHARE_ENCODED_CHARS = 16384;`
   - `export const MAX_SHARE_DECODED_CHARS = 10 * 1024 * 1024;`
@@ -176,31 +192,52 @@ it('rejects payloads that decompress past the cap', () => {
   expect(decodeSharePayload('#s=' + data)).toBeNull();
 });
 it('allow-lists and type-checks options', () => {
-  const p = roundTrip({ mode: 'text', a: 'x', b: 'y',
-    options: { granularity: 42, ignoreCase: true, similarityThreshold: 0.7, evil: 1 } });
+  const p = roundTrip({
+    mode: 'text',
+    a: 'x',
+    b: 'y',
+    options: { granularity: 42, ignoreCase: true, similarityThreshold: 0.7, evil: 1 }
+  });
   expect(p?.options).toEqual({ ignoreCase: true });
 });
 it('drops non-string or overlong file names', () => {
-  expect(roundTrip({ mode: 'text', a: '', b: '', fileNameA: { x: 1 } as never })?.fileNameA).toBeUndefined();
-  expect(roundTrip({ mode: 'text', a: '', b: '', fileNameA: 'f'.repeat(256) })?.fileNameA).toBeUndefined();
+  expect(
+    roundTrip({ mode: 'text', a: '', b: '', fileNameA: { x: 1 } as never })?.fileNameA
+  ).toBeUndefined();
+  expect(
+    roundTrip({ mode: 'text', a: '', b: '', fileNameA: 'f'.repeat(256) })?.fileNameA
+  ).toBeUndefined();
 });
 it('still opens a legitimate 8 KB link with options', () => {
-  const ok = encodeSharePayload({ mode: 'notebook', a: '{}', b: '{}', options: { similarityThreshold: 0.6 } });
+  const ok = encodeSharePayload({
+    mode: 'notebook',
+    a: '{}',
+    b: '{}',
+    options: { similarityThreshold: 0.6 }
+  });
   expect(decodeSharePayload('#s=' + ok.compressed)?.options).toEqual({ similarityThreshold: 0.6 });
 });
 it('parseDiffBundle applies the same sanitization', () => {
-  expect(parseDiffBundle(JSON.stringify({ mode: 'text', a: '', b: '', options: { granularity: 'x' } })).options).toEqual({});
+  expect(
+    parseDiffBundle(JSON.stringify({ mode: 'text', a: '', b: '', options: { granularity: 'x' } }))
+      .options
+  ).toEqual({});
 });
 ```
 
-  `roundTrip(p)` is a local helper: `decodeSharePayload('#s=' + LZString.compressToEncodedURIComponent(JSON.stringify(p)))`.
+`roundTrip(p)` is a local helper: `decodeSharePayload('#s=' + LZString.compressToEncodedURIComponent(JSON.stringify(p)))`.
 
-  (`patch.test.ts`)
+(`patch.test.ts`)
 
 ```ts
 it.each([
-  ['../../.bashrc', '.bashrc'], ['/etc/hosts', 'etc/hosts'], ['a/./b/../c.py', 'a/c.py'],
-  ['bad\u0000\nname.py', 'badname.py'], ['', 'file.txt'], [undefined, 'file.txt'], ['..', 'file.txt']
+  ['../../.bashrc', '.bashrc'],
+  ['/etc/hosts', 'etc/hosts'],
+  ['a/./b/../c.py', 'a/c.py'],
+  ['bad\u0000\nname.py', 'badname.py'],
+  ['', 'file.txt'],
+  [undefined, 'file.txt'],
+  ['..', 'file.txt']
 ])('safePatchPath(%j) → %s', (input, out) => expect(safePatchPath(input)).toBe(out));
 ```
 
@@ -215,10 +252,12 @@ it.each([
 ### Task 5: Harden the remote loader (S7)
 
 **Files:**
+
 - Modify: `src/core/remote.ts`, `src/core/file-reader.ts` (export `MAX_FILE_SIZE`)
 - Test: `tests/unit/remote.test.ts`
 
 **Interfaces:**
+
 - Consumes: `export const MAX_FILE_SIZE` from `file-reader.ts`.
 - Produces: `fetchRemoteFile(urlStr: string): Promise<RemoteFileResult>` (signature unchanged). New error message constant `export const REMOTE_TOO_LARGE_MESSAGE = 'This file is larger than 50 MB. Download it and upload it instead.';`.
 
@@ -230,8 +269,10 @@ it('rejects http:', async () => {
 });
 it('fetches without credentials or referrer', async () => {
   await fetchRemoteFile('https://raw.githubusercontent.com/o/r/main/a.py');
-  expect(fetchMock).toHaveBeenCalledWith(expect.any(String),
-    expect.objectContaining({ credentials: 'omit', referrerPolicy: 'no-referrer' }));
+  expect(fetchMock).toHaveBeenCalledWith(
+    expect.any(String),
+    expect.objectContaining({ credentials: 'omit', referrerPolicy: 'no-referrer' })
+  );
 });
 it('aborts once the body passes MAX_FILE_SIZE', async () => {
   fetchMock.mockResolvedValue(new Response(streamOfBytes(MAX_FILE_SIZE + 1)));
@@ -239,11 +280,13 @@ it('aborts once the body passes MAX_FILE_SIZE', async () => {
 });
 it('accepts a body just under the cap', async () => {
   fetchMock.mockResolvedValue(new Response(streamOfBytes(MAX_FILE_SIZE - 1)));
-  await expect(fetchRemoteFile('https://x.test/ok.txt')).resolves.toMatchObject({ fileName: 'ok.txt' });
+  await expect(fetchRemoteFile('https://x.test/ok.txt')).resolves.toMatchObject({
+    fileName: 'ok.txt'
+  });
 });
 ```
 
-  `streamOfBytes(n)` is a test helper returning a `ReadableStream` of `n` bytes in 1 MiB chunks of `'a'`.
+`streamOfBytes(n)` is a test helper returning a `ReadableStream` of `n` bytes in 1 MiB chunks of `'a'`.
 
 - [ ] **Step 2: Run** → FAIL.
 - [ ] **Step 3: Implement.** Allow `https:` only (message: `'Invalid URL: only HTTPS is supported.'`). Call `fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' })`. Reject early if `Content-Length` > cap. Otherwise read `res.body` with a reader, count bytes, `reader.cancel()` and throw `REMOTE_TOO_LARGE_MESSAGE` past the cap, then decode with `decodeFileBuffer` (reusing the binary check). Let `REMOTE_TOO_LARGE_MESSAGE` and `DiffError` (binary file) pass through the existing catch the way `CORS_ERROR_MESSAGE` does. Today every other error is rewritten to the CORS message.
@@ -255,6 +298,7 @@ it('accepts a body just under the cap', async () => {
 ### Task 6: Least-privilege, pinned CI/CD (S3)
 
 **Files:**
+
 - Modify: `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`
 - Create: `.github/dependabot.yml`
 
@@ -263,16 +307,17 @@ it('accepts a body just under the cap', async () => {
 - [ ] **Step 1: Permissions.** `deploy.yml`: move `permissions` to job level: `checks: { contents: read }`, `deploy: { contents: read, pages: write, id-token: write }`. Set the top-level `permissions: {}`. `ci.yml`: add top-level `permissions: { contents: read }`.
 - [ ] **Step 2: Pin actions to commit SHAs** (resolved 2026-11-02 with `git ls-remote`, peeled tags). Same majors as today, so behaviour doesn't change:
 
-| Action | Pin |
-|---|---|
-| `actions/checkout` | `11d5960a326750d5838078e36cf38b85af677262 # v4.4.0` |
-| `actions/setup-node` | `49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0` |
-| `actions/upload-artifact` | `ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2` |
-| `actions/configure-pages` | `983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0` |
+| Action                          | Pin                                                 |
+| ------------------------------- | --------------------------------------------------- |
+| `actions/checkout`              | `11d5960a326750d5838078e36cf38b85af677262 # v4.4.0` |
+| `actions/setup-node`            | `49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0` |
+| `actions/upload-artifact`       | `ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2` |
+| `actions/configure-pages`       | `983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0` |
 | `actions/upload-pages-artifact` | `56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1` |
-| `actions/deploy-pages` | `d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5` |
+| `actions/deploy-pages`          | `d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5` |
 
-  Re-verify each SHA before committing: `git ls-remote https://github.com/actions/<name> 'refs/tags/<tag>^{}'`.
+Re-verify each SHA before committing: `git ls-remote https://github.com/actions/<name> 'refs/tags/<tag>^{}'`.
+
 - [ ] **Step 3: Audit gate.** In both workflows, after `npm ci`: `- name: Audit runtime dependencies` / `run: npm audit --omit=dev --audit-level=high`.
 - [ ] **Step 4: Dependabot** `.github/dependabot.yml`: `version: 2`; ecosystems `npm` (`/`, weekly, `groups: dev-tooling: { dependency-type: development }`) and `github-actions` (`/`, weekly). Add `cooldown: { default-days: 14 }` to the npm entry so updates respect the 14-day rule.
 - [ ] **Step 5: Verify.**
@@ -287,6 +332,7 @@ it('accepts a body just under the cap', async () => {
 ### Task 7: Privacy copy and docs (S10, S11)
 
 **Files:**
+
 - Modify: `src/ui/ShareModal.svelte` (~line 110), `src/ui/InputPanel.svelte` (~line 397, remember-inputs label), `SECURITY.md`, `README.md` (link to SECURITY.md)
 - Test: `tests/e2e/features.spec.ts` (extend the share test)
 

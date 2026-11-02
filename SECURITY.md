@@ -24,13 +24,13 @@ Only the live site at <https://u77w41.github.io/diff-checker/> and the `main` br
 
 ## How the app treats your data
 
-| What | Where it goes |
-|---|---|
-| Files and pasted text | Browser memory only. Diffing happens in a Web Worker. |
-| Share links | Both inputs are compressed into the part of the URL after `#`. Browsers don't send that part to any server, but it stays in your history and anywhere you paste the link. |
-| "Remember inputs" | Off by default. When on, inputs are saved in plain text in this browser's `localStorage`. |
-| Settings and theme | `localStorage`, no content. |
-| "Load from URL" | Your browser fetches the URL directly, without cookies. Nothing passes through a server of mine. |
+| What                  | Where it goes                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Files and pasted text | Browser memory only. Diffing happens in a Web Worker.                                                                                                                     |
+| Share links           | Both inputs are compressed into the part of the URL after `#`. Browsers don't send that part to any server, but it stays in your history and anywhere you paste the link. |
+| "Remember inputs"     | Off by default. When on, inputs are saved in plain text in this browser's `localStorage`.                                                                                 |
+| Settings and theme    | `localStorage`, no content.                                                                                                                                               |
+| "Load from URL"       | Your browser fetches the URL directly, without cookies. Nothing passes through a server of mine.                                                                          |
 
 ## What's in scope
 
@@ -60,6 +60,6 @@ GitHub Pages can't send custom HTTP headers, so a few protections are out of rea
 
 ## Security reviews
 
-| Date | Scope | Result |
-|---|---|---|
+| Date       | Scope                          | Result                                                            |
+| ---------- | ------------------------------ | ----------------------------------------------------------------- |
 | 2026-11-02 | Full code, dependencies and CI | Fixes in progress. Details will be published here once they ship. |

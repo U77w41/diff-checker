@@ -33,19 +33,19 @@ The origin is shared with the author's other sites (`/support-my-work/`, `/anuru
 
 Severity uses impact × likelihood for this app. "Effective" accounts for existing mitigations.
 
-| ID | Finding | Severity |
-|----|---------|----------|
-| S1 | Share-link markdown can overlay the page and phish credentials | **High** |
-| S2 | DOMPurify 3.2.4 has a known high-severity advisory | **High** (effective Medium) |
-| S3 | CI gives deploy rights to the job that runs all dev dependencies; actions use mutable tags | **Medium** |
-| S4 | Sanitizer fails open | **Medium** |
-| S5 | Share links and bundles are not size-capped or type-checked | **Medium-Low** |
-| S6 | CSP gaps: no `form-action`, broad `connect-src`, `frame-src data:` | **Low** (part of S1's fix) |
-| S7 | Remote loader allows `http:`, has no size cap, sends credentials | **Low** |
-| S8 | Markdown links navigate the tab away; `id`/`name` clobbering | **Low** |
-| S9 | Patch file names from share links are not normalised | **Low** |
-| S10 | Clickjacking can't be blocked on GitHub Pages | **Info** (accepted) |
-| S11 | Privacy: share URLs and remembered inputs hold full content in plain text | **Info** |
+| ID  | Finding                                                                                    | Severity                    |
+| --- | ------------------------------------------------------------------------------------------ | --------------------------- |
+| S1  | Share-link markdown can overlay the page and phish credentials                             | **High**                    |
+| S2  | DOMPurify 3.2.4 has a known high-severity advisory                                         | **High** (effective Medium) |
+| S3  | CI gives deploy rights to the job that runs all dev dependencies; actions use mutable tags | **Medium**                  |
+| S4  | Sanitizer fails open                                                                       | **Medium**                  |
+| S5  | Share links and bundles are not size-capped or type-checked                                | **Medium-Low**              |
+| S6  | CSP gaps: no `form-action`, broad `connect-src`, `frame-src data:`                         | **Low** (part of S1's fix)  |
+| S7  | Remote loader allows `http:`, has no size cap, sends credentials                           | **Low**                     |
+| S8  | Markdown links navigate the tab away; `id`/`name` clobbering                               | **Low**                     |
+| S9  | Patch file names from share links are not normalised                                       | **Low**                     |
+| S10 | Clickjacking can't be blocked on GitHub Pages                                              | **Info** (accepted)         |
+| S11 | Privacy: share URLs and remembered inputs hold full content in plain text                  | **Info**                    |
 
 ---
 
