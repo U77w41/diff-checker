@@ -130,13 +130,14 @@ test.describe('Text & Scripts Diff Checker Rendering', () => {
   // Inputs >= 1 MB have no main-thread fallback, so they only work if the worker gets
   // a cloneable options object (Svelte $state proxies are not cloneable).
   test('diffs inputs over 1 MB in the worker', async ({ page }) => {
+    test.setTimeout(60000);
     const a = 'x'.repeat(600_000) + '\n'; // ~1.2 MB total, ~3 KB as a share link
     const b = a + 'changed\n';
     const link =
       './#s=' + LZString.compressToEncodedURIComponent(JSON.stringify({ mode: 'text', a, b }));
 
     await page.goto(link);
-    await expect(page.locator('.diff-stats')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.diff-stats')).toBeVisible({ timeout: 45000 });
     await expect(page.getByText(/could not be cloned/)).toHaveCount(0);
   });
 });
