@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateGitPatch } from '../../src/core/patch';
+import { generateGitPatch, safePatchPath } from '../../src/core/patch';
 
 describe('Patch Generation for git apply', () => {
   it('uses file name A for both headers', () => {
@@ -21,4 +21,16 @@ describe('Patch Generation for git apply', () => {
     expect(patch).toContain('--- a/file.txt');
     expect(patch).toContain('+++ b/file.txt');
   });
+});
+
+describe('safePatchPath (audit S9)', () => {
+  it.each([
+    ['../../.bashrc', '.bashrc'],
+    ['/etc/hosts', 'etc/hosts'],
+    ['a/./b/../c.py', 'a/c.py'],
+    ['bad\u0000\nname.py', 'badname.py'],
+    ['', 'file.txt'],
+    [undefined, 'file.txt'],
+    ['..', 'file.txt']
+  ])('safePatchPath(%j) → %s', (input, out) => expect(safePatchPath(input)).toBe(out));
 });

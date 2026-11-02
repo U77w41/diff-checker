@@ -84,10 +84,7 @@
     b: textB,
     fileNameA,
     fileNameB,
-    options:
-      currentMode === 'notebook'
-        ? (nbOptions as unknown as Record<string, unknown>)
-        : (options as unknown as Record<string, unknown>)
+    options: currentMode === 'notebook' ? nbOptions : options
   });
 
   function persistSettings() {
@@ -136,9 +133,9 @@
         fileNameB = decoded.fileNameB;
         if (decoded.options) {
           if (decoded.mode === 'notebook') {
-            nbOptions = { ...nbOptions, ...(decoded.options as Partial<NbDiffOptions>) };
+            nbOptions = { ...nbOptions, ...decoded.options };
           } else {
-            options = { ...options, ...(decoded.options as Partial<DiffOptions>) };
+            options = { ...options, ...decoded.options };
           }
         }
         void runDiffNow();
@@ -256,9 +253,9 @@
     fileNameB = bundle.fileNameB;
     if (bundle.options) {
       if (bundle.mode === 'notebook') {
-        nbOptions = { ...nbOptions, ...(bundle.options as Partial<NbDiffOptions>) };
+        nbOptions = { ...nbOptions, ...bundle.options };
       } else {
-        options = { ...options, ...(bundle.options as Partial<DiffOptions>) };
+        options = { ...options, ...bundle.options };
       }
     }
     void runDiffNow();
