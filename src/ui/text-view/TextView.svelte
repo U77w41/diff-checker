@@ -7,7 +7,8 @@
     unifiedMergeView,
     goToNextChunk,
     goToPreviousChunk,
-    getChunks
+    getChunks,
+    Change
   } from '@codemirror/merge';
   import type { CharChange, DiffOptions } from '../../core/text-diff/types';
   import { diffCheckerTheme } from './theme';
@@ -41,6 +42,7 @@
   let mergeViewInstance: MergeView | null = null;
   let unifiedViewInstance: EditorView | null = null;
   let activeChunks = $state<{ fromA: number; toA: number; fromB: number; toB: number }[]>([]);
+  let currentGeneration = 0;
 
   // Explain active ignore options in the "No differences" message
   const activeIgnoreNotes = $derived.by(() => {
@@ -54,6 +56,7 @@
 
   async function createView() {
     if (!containerEl) return;
+    const gen = ++currentGeneration;
     destroyView();
 
     if (identical) {
@@ -63,87 +66,98 @@
       return;
     }
 
-    const langExts = await loadLanguageExtension(selectedLanguage);
-    const cmChanges = changes.map((ch: CharChange) => ({
-      fromA: ch.fromA,
-      toA: ch.toA,
-      fromB: ch.fromB,
-      toB: ch.toB
-    }));
+    try {
+      const langExts = await loadLanguageExtension(selectedLanguage);
+      if (gen !== currentGeneration || !containerEl) return;
 
-    if (viewMode === 'side-by-side') {
-      const baseExtensions: Extension[] = [
-        EditorState.readOnly.of(true),
-        EditorView.editable.of(false),
-        lineNumbers(),
-        diffCheckerTheme,
-        ...langExts
-      ];
+      const cmChanges = changes.map(
+        (ch: CharChange) => new Change(ch.fromA, ch.toA, ch.fromB, ch.toB)
+      );
 
-      mergeViewInstance = new MergeView({
-        a: {
-          doc: textA,
-          extensions: baseExtensions
-        },
-        b: {
-          doc: textB,
-          extensions: baseExtensions
-        },
-        parent: containerEl,
-        diffConfig: {
-          override: () => cmChanges
-        },
-        gutter: true,
-        collapseUnchanged: { margin: 3, minSize: 6 }
-      });
+      if (viewMode === 'side-by-side') {
+        const baseExtensions: Extension[] = [
+          EditorState.readOnly.of(true),
+          EditorView.editable.of(false),
+          lineNumbers(),
+          diffCheckerTheme,
+          ...langExts
+        ];
 
-      const chunkResult = getChunks(mergeViewInstance.b.state);
-      activeChunks = chunkResult?.chunks
-        ? chunkResult.chunks.map((c) => ({
-            fromA: c.fromA,
-            toA: c.toA,
-            fromB: c.fromB,
-            toB: c.toB
-          }))
-        : [];
-      onChunkCountChange?.(activeChunks.length);
-      onCurrentChunkChange?.(activeChunks.length > 0 ? 1 : 0);
-    } else {
-      // Unified view mode
-      unifiedViewInstance = new EditorView({
-        state: EditorState.create({
-          doc: textB,
-          extensions: [
-            EditorState.readOnly.of(true),
-            EditorView.editable.of(false),
-            lineNumbers(),
-            diffCheckerTheme,
-            unifiedMergeView({
-              original: textA,
-              mergeControls: false,
-              gutter: true,
-              diffConfig: {
-                override: () => cmChanges
-              },
-              collapseUnchanged: { margin: 3, minSize: 6 }
-            }),
-            ...langExts
-          ]
-        }),
-        parent: containerEl
-      });
+        mergeViewInstance = new MergeView({
+          a: {
+            doc: textA,
+            extensions: [
+              ...baseExtensions,
+              EditorView.contentAttributes.of({ 'aria-label': 'Original text (read-only)' })
+            ]
+          },
+          b: {
+            doc: textB,
+            extensions: [
+              ...baseExtensions,
+              EditorView.contentAttributes.of({ 'aria-label': 'Modified text (read-only)' })
+            ]
+          },
+          parent: containerEl,
+          diffConfig: {
+            override: () => cmChanges
+          },
+          gutter: true,
+          collapseUnchanged: { margin: 3, minSize: 6 }
+        });
 
-      const chunkResult = getChunks(unifiedViewInstance.state);
-      activeChunks = chunkResult?.chunks
-        ? chunkResult.chunks.map((c) => ({
-            fromA: c.fromA,
-            toA: c.toA,
-            fromB: c.fromB,
-            toB: c.toB
-          }))
-        : [];
-      onChunkCountChange?.(activeChunks.length);
-      onCurrentChunkChange?.(activeChunks.length > 0 ? 1 : 0);
+        const chunkResult = getChunks(mergeViewInstance.b.state);
+        activeChunks = chunkResult?.chunks
+          ? chunkResult.chunks.map((c) => ({
+              fromA: c.fromA,
+              toA: c.toA,
+              fromB: c.fromB,
+              toB: c.toB
+            }))
+          : [];
+        onChunkCountChange?.(activeChunks.length);
+        onCurrentChunkChange?.(activeChunks.length > 0 ? 1 : 0);
+      } else {
+        // Unified view mode
+        unifiedViewInstance = new EditorView({
+          state: EditorState.create({
+            doc: textB,
+            extensions: [
+              EditorState.readOnly.of(true),
+              EditorView.editable.of(false),
+              lineNumbers(),
+              diffCheckerTheme,
+              EditorView.contentAttributes.of({ 'aria-label': 'Unified diff (read-only)' }),
+              unifiedMergeView({
+                original: textA,
+                mergeControls: false,
+                gutter: true,
+                diffConfig: {
+                  override: () => cmChanges
+                },
+                collapseUnchanged: { margin: 3, minSize: 6 }
+              }),
+              ...langExts
+            ]
+          }),
+          parent: containerEl
+        });
+
+        const chunkResult = getChunks(unifiedViewInstance.state);
+        activeChunks = chunkResult?.chunks
+          ? chunkResult.chunks.map((c) => ({
+              fromA: c.fromA,
+              toA: c.toA,
+              fromB: c.fromB,
+              toB: c.toB
+            }))
+          : [];
+        onChunkCountChange?.(activeChunks.length);
+        onCurrentChunkChange?.(activeChunks.length > 0 ? 1 : 0);
+      }
+    } catch (err) {
+      console.error('Failed to create diff view:', err);
+      destroyView();
     }
   }
 
@@ -182,7 +196,6 @@
   }
 
   onMount(() => {
-    createView();
     return destroyView;
   });
 
@@ -221,6 +234,8 @@
           <button
             type="button"
             class="scrollbar-mark"
+            tabindex="-1"
+            aria-hidden="true"
             style="top: {topPercent}%"
             onclick={() => scrollToOffset(chunk.fromB)}
             title="Jump to change"

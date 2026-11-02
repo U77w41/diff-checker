@@ -183,7 +183,7 @@
 
   .shortcuts-table th {
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-body);
     font-size: 0.8rem;
     text-transform: uppercase;
   }

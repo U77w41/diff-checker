@@ -49,6 +49,8 @@ test.describe('Accessibility audits (WCAG 2.1 AA via axe-core)', () => {
 
     const modal = page.locator('.modal-card[role="dialog"]');
     await expect(modal).toBeVisible();
+    // Wait for modal entry animation to complete
+    await page.waitForTimeout(250);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accessibilityScanResults = await new AxeBuilder({ page: page as any })

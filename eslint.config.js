@@ -8,6 +8,7 @@ export default tsPlugin.config(
       'coverage/**',
       'node_modules/**',
       '.github/**',
+      '.agents/**',
       'public/**',
       'package-lock.json'
     ]
