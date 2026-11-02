@@ -13,9 +13,19 @@
     rawB: string;
     options: NbDiffOptions;
     onOptionsChange?: (opts: Partial<NbDiffOptions>) => void;
+    viewMode?: 'side-by-side' | 'unified';
+    onViewModeChange?: (mode: 'side-by-side' | 'unified') => void;
   }
 
-  let { diffResult, rawA, rawB, options, onOptionsChange }: Props = $props();
+  let {
+    diffResult,
+    rawA,
+    rawB,
+    options,
+    onOptionsChange,
+    viewMode = 'side-by-side',
+    onViewModeChange
+  }: Props = $props();
 
   let isMobileOutlineOpen = $state(false);
   let showUnchanged = $state(false);
@@ -223,6 +233,8 @@
         onToggleMetadata={handleToggleMetadata}
         onToggleUnchanged={handleToggleUnchanged}
         onThresholdChange={handleThresholdChange}
+        {viewMode}
+        onViewModeChange={(mode) => onViewModeChange?.(mode)}
       />
 
       <!-- Cell Cards and Unchanged Runs -->
@@ -236,6 +248,7 @@
               cellB={item.index < (nbB?.cells.length ?? 0) ? nbB?.cells[item.index] : undefined}
               {hideOutputs}
               {hideMetadata}
+              {viewMode}
               isSelected={selectedCellIndex === item.index}
               onSelect={() => (selectedCellIndex = item.index)}
             />
@@ -255,6 +268,7 @@
                   cellB={cIdx < (nbB?.cells.length ?? 0) ? nbB?.cells[cIdx] : undefined}
                   {hideOutputs}
                   {hideMetadata}
+                  {viewMode}
                   isSelected={selectedCellIndex === cIdx}
                   onSelect={() => (selectedCellIndex = cIdx)}
                 />

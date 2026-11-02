@@ -8,6 +8,8 @@
     onToggleMetadata: () => void;
     onToggleUnchanged: () => void;
     onThresholdChange: (val: number) => void;
+    viewMode: 'side-by-side' | 'unified';
+    onViewModeChange: (mode: 'side-by-side' | 'unified') => void;
   }
 
   let {
@@ -18,13 +20,36 @@
     onToggleOutputs,
     onToggleMetadata,
     onToggleUnchanged,
-    onThresholdChange
+    onThresholdChange,
+    viewMode,
+    onViewModeChange
   }: Props = $props();
 
   let showAdvanced = $state(false);
 </script>
 
 <div class="filter-bar card">
+  <div class="btn-group view-toggle" role="group" aria-label="Diff layout">
+    <button
+      type="button"
+      class="toggle-btn"
+      class:active={viewMode === 'side-by-side'}
+      aria-pressed={viewMode === 'side-by-side'}
+      onclick={() => onViewModeChange('side-by-side')}
+    >
+      Side-by-side
+    </button>
+    <button
+      type="button"
+      class="toggle-btn"
+      class:active={viewMode === 'unified'}
+      aria-pressed={viewMode === 'unified'}
+      onclick={() => onViewModeChange('unified')}
+    >
+      Unified
+    </button>
+  </div>
+
   <div class="filters-group">
     <label class="filter-check {hideOutputs ? 'active' : ''}">
       <input type="checkbox" checked={hideOutputs} onchange={onToggleOutputs} />
@@ -89,6 +114,32 @@
     border-radius: var(--radius-sm);
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .btn-group {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    overflow: hidden;
+  }
+
+  .toggle-btn {
+    padding: 6px 12px;
+    border: none;
+    background: var(--card-background);
+    color: var(--text-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: var(--accent-text);
   }
 
   .filters-group {

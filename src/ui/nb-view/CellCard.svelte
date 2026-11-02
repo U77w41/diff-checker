@@ -8,6 +8,7 @@
   import HtmlRenderer from './renderers/HtmlRenderer.svelte';
   import UnsupportedOutput from './renderers/UnsupportedOutput.svelte';
   import LargeOutputPlaceholder from './renderers/LargeOutputPlaceholder.svelte';
+  import SplitHunks from './SplitHunks.svelte';
 
   interface Props {
     cellDiff: CellDiff;
@@ -18,6 +19,7 @@
     hideMetadata: boolean;
     isSelected?: boolean;
     onSelect?: () => void;
+    viewMode?: 'side-by-side' | 'unified';
   }
 
   let {
@@ -28,7 +30,8 @@
     hideOutputs,
     hideMetadata,
     isSelected = false,
-    onSelect
+    onSelect,
+    viewMode = 'side-by-side'
   }: Props = $props();
 
   const op = $derived(cellDiff.op);
@@ -182,44 +185,52 @@
                 </div>
               </div>
             {:else if cellDiff.source}
-              <div class="code-diff-block">
-                {#each cellDiff.source.hunks as hunk, hIdx (hIdx)}
-                  <div class="hunk-row">
-                    <div class="hunk-hdr">
-                      @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-                    </div>
-                    {#each hunk.lines as line, lIdx (lIdx)}
-                      <div class="code-line line-{line.kind}">
-                        <span class="line-char">
-                          {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '}
-                        </span>
-                        <span class="line-str">{line.text}</span>
+              {#if viewMode === 'side-by-side'}
+                <SplitHunks hunks={cellDiff.source.hunks} />
+              {:else}
+                <div class="code-diff-block">
+                  {#each cellDiff.source.hunks as hunk, hIdx (hIdx)}
+                    <div class="hunk-row">
+                      <div class="hunk-hdr">
+                        @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
                       </div>
-                    {/each}
-                  </div>
-                {/each}
-              </div>
+                      {#each hunk.lines as line, lIdx (lIdx)}
+                        <div class="code-line line-{line.kind}">
+                          <span class="line-char">
+                            {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '}
+                          </span>
+                          <span class="line-str">{line.text}</span>
+                        </div>
+                      {/each}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             {/if}
           </div>
         {:else if cellDiff.source}
           <!-- Code diff hunks -->
-          <div class="code-diff-block">
-            {#each cellDiff.source.hunks as hunk, hIdx (hIdx)}
-              <div class="hunk-row">
-                <div class="hunk-hdr">
-                  @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-                </div>
-                {#each hunk.lines as line, lIdx (lIdx)}
-                  <div class="code-line line-{line.kind}">
-                    <span class="line-char">
-                      {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '}
-                    </span>
-                    <span class="line-str">{line.text}</span>
+          {#if viewMode === 'side-by-side'}
+            <SplitHunks hunks={cellDiff.source.hunks} />
+          {:else}
+            <div class="code-diff-block">
+              {#each cellDiff.source.hunks as hunk, hIdx (hIdx)}
+                <div class="hunk-row">
+                  <div class="hunk-hdr">
+                    @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
                   </div>
-                {/each}
-              </div>
-            {/each}
-          </div>
+                  {#each hunk.lines as line, lIdx (lIdx)}
+                    <div class="code-line line-{line.kind}">
+                      <span class="line-char">
+                        {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '}
+                      </span>
+                      <span class="line-str">{line.text}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/each}
+            </div>
+          {/if}
         {:else}
           <!-- Single cell code content (e.g. unchanged, added, deleted) -->
           <div class="code-diff-block">
@@ -260,9 +271,9 @@
                 <div class="output-same-note">Output unchanged</div>
               {:else if outDiff.kind === 'text'}
                 {#if outDiff.mime === 'application/vnd.jupyter.stderr'}
-                  <ErrorDiff diff={outDiff.diff} />
+                  <ErrorDiff diff={outDiff.diff} {viewMode} />
                 {:else}
-                  <StreamDiff diff={outDiff.diff} />
+                  <StreamDiff diff={outDiff.diff} {viewMode} />
                 {/if}
               {:else if outDiff.kind === 'image'}
                 <ImageDiff mime={outDiff.mime} a={outDiff.a} b={outDiff.b} />

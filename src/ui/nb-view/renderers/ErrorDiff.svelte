@@ -1,11 +1,13 @@
 <script lang="ts">
+  import SplitHunks from '../SplitHunks.svelte';
   import type { TextDiffResult } from '../../../core/text-diff/types';
 
   interface Props {
     diff: TextDiffResult;
+    viewMode?: 'side-by-side' | 'unified';
   }
 
-  let { diff }: Props = $props();
+  let { diff, viewMode = 'side-by-side' }: Props = $props();
 </script>
 
 <div class="error-diff-container">
@@ -14,21 +16,25 @@
   </div>
 
   <div class="error-body">
-    {#each diff.hunks as hunk, hIdx (hIdx)}
-      <div class="hunk-section">
-        <div class="hunk-meta">
-          @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-        </div>
-        {#each hunk.lines as line, lIdx (lIdx)}
-          <div class="error-line line-{line.kind}">
-            <span class="gutter-sym">
-              {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '}
-            </span>
-            <span class="text-span">{line.text}</span>
+    {#if viewMode === 'side-by-side'}
+      <SplitHunks hunks={diff.hunks} />
+    {:else}
+      {#each diff.hunks as hunk, hIdx (hIdx)}
+        <div class="hunk-section">
+          <div class="hunk-meta">
+            @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
           </div>
-        {/each}
-      </div>
-    {/each}
+          {#each hunk.lines as line, lIdx (lIdx)}
+            <div class="error-line line-{line.kind}">
+              <span class="gutter-sym">
+                {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '}
+              </span>
+              <span class="text-span">{line.text}</span>
+            </div>
+          {/each}
+        </div>
+      {/each}
+    {/if}
   </div>
 </div>
 

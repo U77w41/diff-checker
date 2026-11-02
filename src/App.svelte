@@ -865,6 +865,8 @@
             nbOptions = { ...nbOptions, ...newOpts };
             void runDiffNow();
           }}
+          {viewMode}
+          onViewModeChange={(mode) => (viewMode = mode)}
         />
       </div>
     {:else if currentMode === 'text' && diffResult}
