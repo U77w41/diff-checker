@@ -22,7 +22,7 @@ export interface DecodedFile {
   warning?: string;
 }
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const BINARY_CHECK_BYTES = 8192; // 8 KB
 
