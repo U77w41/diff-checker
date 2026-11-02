@@ -1,9 +1,5 @@
 export type DiffErrorCode =
-  | 'BINARY'
-  | 'INVALID_JSON'
-  | 'UNSUPPORTED_NBFORMAT'
-  | 'TOO_LARGE'
-  | 'CANCELLED';
+  'BINARY' | 'INVALID_JSON' | 'UNSUPPORTED_NBFORMAT' | 'TOO_LARGE' | 'CANCELLED';
 
 export class DiffError extends Error {
   code: DiffErrorCode;

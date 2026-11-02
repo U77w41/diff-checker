@@ -113,8 +113,7 @@
   let expandedRuns = $state<Record<number, boolean>>({});
 
   type DisplayItem =
-    | { type: 'cell'; index: number }
-    | { type: 'unchanged_run'; runId: number; indices: number[] };
+    { type: 'cell'; index: number } | { type: 'unchanged_run'; runId: number; indices: number[] };
 
   const displayItems = $derived.by(() => {
     const items: DisplayItem[] = [];
