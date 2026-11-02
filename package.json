@@ -36,7 +36,7 @@
     "dompurify": "3.4.17",
     "katex": "0.19.1",
     "lz-string": "1.5.0",
-    "marked": "15.0.7",
+    "marked": "18.1.1",
     "svelte": "5.57.3"
   },
   "devDependencies": {
