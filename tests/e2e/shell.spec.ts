@@ -144,4 +144,24 @@ test.describe('Branded shell and header/footer', () => {
     await expect(navItems.nth(1)).toContainText('Hire Me');
     await expect(navItems.nth(2)).toContainText('Support my work');
   });
+
+  test('no intro block, hidden h1 kept', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.getByText('Compare text files, source code')).toHaveCount(0);
+    const h1 = page.locator('h1');
+    await expect(h1).toHaveText('Diff Checker');
+    const box = await h1.boundingBox();
+    expect(box === null || box.width <= 1).toBe(true);
+  });
+
+  test('mode tabs are compact and stay on one line at 375px', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('./');
+    for (const name of ['Text', 'Notebook']) {
+      const tab = page.getByRole('tab', { name, exact: true });
+      await expect(tab).toBeVisible();
+      const height = await tab.evaluate((el) => el.getBoundingClientRect().height);
+      expect(height).toBeLessThanOrEqual(48);
+    }
+  });
 });

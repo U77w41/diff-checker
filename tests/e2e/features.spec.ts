@@ -38,11 +38,11 @@ test.describe('Phase 5 Features: Hash routing, Share links, Shortcuts, and Mobil
 
   test('switches mode via hash routing #notebook and #text', async ({ page }) => {
     await page.goto('./#notebook');
-    const notebookTab = page.getByRole('tab', { name: /Jupyter Notebooks/i });
+    const notebookTab = page.getByRole('tab', { name: 'Notebook', exact: true });
     await expect(notebookTab).toHaveAttribute('aria-selected', 'true');
 
     await page.goto('./#text');
-    const textTab = page.getByRole('tab', { name: /Text & Scripts/i });
+    const textTab = page.getByRole('tab', { name: 'Text', exact: true });
     await expect(textTab).toHaveAttribute('aria-selected', 'true');
   });
 

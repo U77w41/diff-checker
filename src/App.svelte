@@ -696,29 +696,8 @@
 
     <div class="container">
       <section class="intro">
-        <div class="app-title-row">
-          <svg
-            class="app-title-logo"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 3L12 21M14.7107 19.3887C17.1796 18.8321 19.1072 16.979 19.6863 14.6058C20.1046 12.8918 20.1046 11.1081 19.6863 9.39419C19.1072 7.02094 17.1796 5.16789 14.7107 4.61121M12 4.30969C11.0904 4.30969 10.1808 4.41019 9.28927 4.61121C6.82045 5.16789 4.89278 7.02094 4.31367 9.39419C3.89544 11.1081 3.89544 12.8918 4.31367 14.6058C4.89278 16.979 6.82045 18.8321 9.28928 19.3887C10.1808 19.5898 11.0904 19.6903 12 19.6903"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-            />
-          </svg>
-          <h1>Diff Checker</h1>
-        </div>
-        <p>
-          Compare text files, source code, or Jupyter notebooks directly in your browser. Your files
-          stay private on your device.
-        </p>
+        <h1 class="visually-hidden">Diff Checker</h1>
 
-        <!-- Mode Selector Tabs -->
         <div class="mode-tabs-bar" role="tablist" aria-label="Diff comparison mode">
           <button
             type="button"
@@ -731,13 +710,20 @@
               void runDiffNow();
             }}
           >
-            {#if currentMode === 'text'}
-              <span class="active-dot" aria-hidden="true">●</span>
-            {/if}
-            <span class="tab-label">📄 Text &amp; Scripts</span>
-            {#if currentMode === 'text'}
-              <span class="active-badge">Active</span>
-            {/if}
+            <svg
+              class="tab-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M7 4h7l5 5v11H7z" />
+              <path d="M14 4v5h5M10 13h6M10 17h4" />
+            </svg>
+            <span>Text</span>
           </button>
           <button
             type="button"
@@ -750,13 +736,20 @@
               void runDiffNow();
             }}
           >
-            {#if currentMode === 'notebook'}
-              <span class="active-dot" aria-hidden="true">●</span>
-            {/if}
-            <span class="tab-label">🪐 Jupyter Notebooks</span>
-            {#if currentMode === 'notebook'}
-              <span class="active-badge">Active</span>
-            {/if}
+            <svg
+              class="tab-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="5" y="4" width="14" height="16" rx="2" />
+              <path d="M9 4v16M12 9h4M12 13h4" />
+            </svg>
+            <span>Notebook</span>
           </button>
         </div>
       </section>
@@ -993,24 +986,6 @@
 <HelpModal bind:isOpen={isHelpOpen} />
 
 <style>
-  .app-title-row {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.65rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .app-title-logo {
-    width: 2.1rem;
-    height: 2.1rem;
-    color: var(--accent);
-    flex-shrink: 0;
-  }
-
-  .app-title-row h1 {
-    margin: 0;
-  }
-
   .results-area {
     width: 100%;
     margin-top: 10px;
@@ -1044,64 +1019,45 @@
   .mode-tabs-bar {
     display: inline-flex;
     align-items: center;
-    background: var(--card-background-muted);
     border: 1px solid var(--border);
-    border-radius: 9999px;
-    padding: 4px;
-    gap: 4px;
-    margin-top: 0.75rem;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+    background: var(--card-background);
   }
 
   .tab-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.45rem 1.1rem;
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 9999px;
-    color: var(--text-muted);
-    cursor: pointer;
+    gap: 6px;
     min-height: 44px;
-    transition: all 0.15s ease-in-out;
+    padding: 0 16px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
   }
 
   .tab-btn:hover:not(.active) {
-    background: var(--card-background);
     color: var(--text-main);
   }
 
-  .tab-btn.active,
-  .tab-btn[aria-selected='true'] {
+  .tab-btn.active {
     background: var(--accent);
     color: var(--accent-text);
-    border-color: var(--accent);
-    font-weight: 700;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
   }
 
-  .tab-label {
-    display: inline-block;
-  }
-
-  .active-dot {
-    font-size: 0.65rem;
-    color: currentColor;
-    opacity: 0.9;
-  }
-
-  .active-badge {
-    font-size: 0.7rem;
-    padding: 0.12rem 0.5rem;
-    border-radius: 9999px;
-    background: var(--accent-text);
-    color: var(--accent);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+  .tab-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
   }
 
   .status-banner {
