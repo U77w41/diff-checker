@@ -17,16 +17,37 @@ export default defineConfig({
         name: 'Diff Checker',
         short_name: 'DiffChecker',
         description: 'Fast, secure in-browser text and Jupyter Notebook diff tool.',
-        theme_color: '#34495e',
+        theme_color: '#f5f5fa',
         background_color: '#f5f5fa',
         scope: '/diff-checker/',
         start_url: '/diff-checker/',
+        id: '/diff-checker/',
         display: 'standalone',
+        categories: ['utilities', 'developer', 'productivity'],
         icons: [
+          {
+            src: 'pwa-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
           {
             src: 'favicon.svg',
             sizes: 'any',
-            type: 'image/svg+xml'
+            type: 'image/svg+xml',
+            purpose: 'any'
           }
         ]
       }
