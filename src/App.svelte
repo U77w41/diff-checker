@@ -785,7 +785,7 @@
       </div>
     {/snippet}
 
-    <div class="container">
+    <div class="workspace-inputs">
       <section class="intro">
         <h1 class="visually-hidden">Diff Checker</h1>
 
@@ -938,7 +938,7 @@
     {/if}
 
     {#if slowWarning}
-      <div class="container">
+      <div class="workspace-inputs">
         <div class="slow-warning card">
           <span>Diff is taking longer than usual...</span>
           <button
@@ -1078,6 +1078,10 @@
 <InstallModal bind:isOpen={isInstallModalOpen} />
 
 <style>
+  .workspace-inputs {
+    width: 100%;
+  }
+
   .results-area {
     width: 100%;
     margin-top: 10px;
