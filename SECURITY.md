@@ -60,6 +60,23 @@ GitHub Pages can't send custom HTTP headers, so a few protections are out of rea
 
 ## Security reviews
 
-| Date       | Scope                          | Result                                                            |
-| ---------- | ------------------------------ | ----------------------------------------------------------------- |
-| 2026-11-02 | Full code, dependencies and CI | Fixes in progress. Details will be published here once they ship. |
+| Date       | Scope                          | Result                         |
+| ---------- | ------------------------------ | ------------------------------ |
+| 2026-11-02 | Full code, dependencies and CI | 10 findings fixed, 1 accepted. |
+
+### 2026-11-02 review
+
+The worst issue was in share links. Markdown in a shared notebook could draw a fake sign-in form over the whole page and send whatever you typed to another site. No script was needed, so the CSP didn't stop it. It's fixed in three layers: form controls and page-level positioning are stripped from markdown, each rendered cell is now paint-contained so nothing can escape it, and the CSP blocks form submissions outright.
+
+Also fixed:
+
+- DOMPurify upgraded from 3.2.4 to 3.4.17, which clears seven published advisories.
+- The sanitizer now fails closed. If it can't load, markdown shows as plain text.
+- Markdown links open in a new tab, and element `id`/`name` values are prefixed so they can't clobber page globals.
+- Share links and diff bundles are size-capped before and after decompression, and their options and file names are checked.
+- Patch exports turn file names like `../../.bashrc` into safe relative paths.
+- "Load from URL" is HTTPS-only, sends no cookies or referrer, and stops reading after 50 MB.
+- CI jobs get only the permissions they need, actions are pinned to commit SHAs, runtime dependencies are audited on every build, and Dependabot is on.
+- The share dialog and "Remember inputs" option now say where your data ends up.
+
+Accepted: framing by other sites, since GitHub Pages can't send the header that blocks it. The broad `connect-src https:` that "Load from URL" needs also stays. Both are covered under [Known limits](#known-limits).

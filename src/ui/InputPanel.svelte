@@ -395,7 +395,7 @@
       <div class="footer-right">
         <label
           class="remember-label"
-          title="Preserve inputs in local storage across browser visits"
+          title="Saved as plain text in this browser. Don't use on shared computers."
         >
           <input
             type="checkbox"

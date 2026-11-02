@@ -100,4 +100,18 @@ test.describe('Phase 5 Features: Hash routing, Share links, Shortcuts, and Mobil
     const mobilePanel = page.locator('.mobile-options-panel');
     await expect(mobilePanel).toBeVisible();
   });
+
+  test('privacy notices explain where shared and remembered inputs end up', async ({
+    page,
+    isMobile
+  }) => {
+    test.skip(isMobile, 'Share button sits in the mobile menu; copy is identical');
+    await page.goto('./#text');
+
+    await expect(page.locator('.remember-label')).toHaveAttribute('title', /plain text/);
+
+    await page.getByRole('button', { name: 'Try an example' }).click();
+    await page.getByRole('button', { name: 'Share', exact: true }).click();
+    await expect(page.locator('.warning-banner')).toContainText('stays in your browser history');
+  });
 });

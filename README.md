@@ -43,6 +43,7 @@ Additional notebook features include:
 - Computation happens in the browser via a dedicated Web Worker using Comlink.
 - Files never leave your machine; the app contains no backend, tracking scripts, or analytics cookies.
 - Settings and comparison inputs are kept in memory unless you enable local storage persistence.
+- Found a security problem? See [SECURITY.md](SECURITY.md) for how to report it privately.
 
 ### Sharing and Export
 

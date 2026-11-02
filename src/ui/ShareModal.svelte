@@ -107,7 +107,10 @@
         <!-- Visibility Warning required by specification -->
         <div class="warning-banner" role="alert">
           <span class="warning-icon" aria-hidden="true">⚠️</span>
-          <span><strong>Privacy notice:</strong> Anyone with this link can read both inputs.</span>
+          <span
+            ><strong>Privacy notice:</strong> Anyone with this link can read both inputs. The link also
+            stays in your browser history.</span
+          >
         </div>
 
         {#if bundleError}
