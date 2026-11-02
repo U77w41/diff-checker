@@ -15,6 +15,7 @@
   import NotebookView from './ui/nb-view/NotebookView.svelte';
   import ShareModal from './ui/ShareModal.svelte';
   import HelpModal from './ui/HelpModal.svelte';
+  import InstallModal from './ui/InstallModal.svelte';
   import ToolsDropdown from './ui/ToolsDropdown.svelte';
   import { decodeSharePayload, type SharePayload } from './core/share';
   import { loadSettings, saveSettings, type StoredSettings } from './app/settings';
@@ -72,6 +73,8 @@
   // Modals
   let isShareOpen = $state(false);
   let isHelpOpen = $state(false);
+  let isInstallModalOpen = $state(false);
+  let isStandalone = $state(false);
 
   interface TextViewHandle {
     nextChange: () => void;
@@ -93,18 +96,19 @@
   }
 
   let deferredInstallPrompt = $state<BeforeInstallPromptEvent | null>(null);
-  let canInstall = $state(false);
 
   async function handleInstallApp() {
-    if (!deferredInstallPrompt) return;
-    const promptEvent = deferredInstallPrompt;
-    deferredInstallPrompt = null;
-    canInstall = false;
-    try {
-      await promptEvent.prompt();
-      await promptEvent.userChoice;
-    } catch {
-      // Ignore cancellation or rejection
+    if (deferredInstallPrompt) {
+      const promptEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      try {
+        await promptEvent.prompt();
+        await promptEvent.userChoice;
+      } catch {
+        // Ignore cancellation or rejection
+      }
+    } else {
+      isInstallModalOpen = true;
     }
   }
 
@@ -249,7 +253,7 @@
       standalone?: boolean;
     }
 
-    const isStandalone =
+    isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       Boolean((navigator as NavigatorWithStandalone).standalone);
 
@@ -257,12 +261,11 @@
       if (isStandalone) return;
       e.preventDefault();
       deferredInstallPrompt = e as BeforeInstallPromptEvent;
-      canInstall = true;
     }
 
     function onAppInstalled() {
       deferredInstallPrompt = null;
-      canInstall = false;
+      isStandalone = true;
     }
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
@@ -722,7 +725,7 @@
             </svg>
           </a>
         </li>
-        {#if canInstall}
+        {#if !isStandalone}
           <li>
             <button
               type="button"
@@ -1072,6 +1075,7 @@
 />
 
 <HelpModal bind:isOpen={isHelpOpen} />
+<InstallModal bind:isOpen={isInstallModalOpen} />
 
 <style>
   .results-area {

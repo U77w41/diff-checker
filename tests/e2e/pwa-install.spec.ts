@@ -10,27 +10,12 @@ interface WindowWithPromptCallback extends Window {
 }
 
 test.describe('PWA In-App Install Button', () => {
-  test('does not show install button by default before beforeinstallprompt event', async ({
-    page
-  }) => {
-    await page.goto('./');
-    await expect(page.locator('[data-testid="install-app"]')).toHaveCount(0);
-  });
-
-  test('displays install button between Support my work and Theme toggle when beforeinstallprompt fires', async ({
+  test('shows install button by default in browser situated between Support my work and Theme toggle', async ({
     page,
     isMobile
   }) => {
     test.skip(isMobile, 'Desktop nav order verification');
     await page.goto('./');
-
-    // Simulate beforeinstallprompt event
-    await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
-      event.prompt = () => Promise.resolve();
-      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
-      window.dispatchEvent(event);
-    });
 
     const installBtn = page.locator('[data-testid="install-app"]');
     await expect(installBtn).toBeVisible();
@@ -54,7 +39,27 @@ test.describe('PWA In-App Install Button', () => {
     }
   });
 
-  test('clicking install button calls prompt() and clears button', async ({ page }) => {
+  test('clicking install button without beforeinstallprompt opens guidance dialog', async ({
+    page
+  }) => {
+    await page.goto('./');
+
+    const installBtn = page.locator('[data-testid="install-app"]');
+    await expect(installBtn).toBeVisible();
+    await installBtn.click();
+
+    const dialog = page.locator('div[role="dialog"]');
+    await expect(dialog).toBeVisible();
+    await expect(page.locator('#install-title')).toHaveText('Install Diff Checker');
+
+    // Close dialog with Got it
+    await page.getByRole('button', { name: 'Got it' }).click();
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test('clicking install button with beforeinstallprompt event calls prompt()', async ({
+    page
+  }) => {
     await page.goto('./');
 
     await page.exposeFunction('onPromptCalled', () => {});
@@ -71,18 +76,13 @@ test.describe('PWA In-App Install Button', () => {
     const installBtn = page.locator('[data-testid="install-app"]');
     await expect(installBtn).toBeVisible();
     await installBtn.click();
-    await expect(installBtn).toHaveCount(0);
+
+    // Dialog should not open because native prompt was handled
+    await expect(page.locator('div[role="dialog"]')).toHaveCount(0);
   });
 
   test('hides install button when appinstalled event fires', async ({ page }) => {
     await page.goto('./');
-
-    await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
-      event.prompt = () => Promise.resolve();
-      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
-      window.dispatchEvent(event);
-    });
 
     const installBtn = page.locator('[data-testid="install-app"]');
     await expect(installBtn).toBeVisible();
@@ -97,13 +97,6 @@ test.describe('PWA In-App Install Button', () => {
   test('renders properly on mobile viewports without horizontal overflow', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('./');
-
-    await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
-      event.prompt = () => Promise.resolve();
-      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
-      window.dispatchEvent(event);
-    });
 
     const installBtn = page.locator('[data-testid="install-app"]');
     await expect(installBtn).toBeVisible();
@@ -136,14 +129,6 @@ test.describe('PWA In-App Install Button', () => {
     });
 
     await page.goto('./');
-
-    await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt') as MockBeforeInstallPromptEvent;
-      event.prompt = () => Promise.resolve();
-      event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
-      window.dispatchEvent(event);
-    });
-
     await expect(page.locator('[data-testid="install-app"]')).toHaveCount(0);
   });
 });
