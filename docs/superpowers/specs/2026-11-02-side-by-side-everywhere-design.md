@@ -1,7 +1,7 @@
 # Side-by-side everywhere: design
 
 **Date:** 2026-11-02
-**Status:** approved approach A, spec awaiting review
+**Status:** approved (approach A + section 5), 2026-11-02
 
 ## What Ujjwal asked for
 
@@ -70,6 +70,24 @@ He chose (2026-11-02):
 - Once both sides have content, the diff runs as normal, so real JSON errors still show.
 - Text mode keeps comparing against an empty side.
 
+### 5. Cleaner page and footer (added 2026-11-02)
+
+Ujjwal asked to drop the intro block and make the page and footer cleaner and more minimal, keeping the Support my work page's theme and every footer link.
+
+- **Intro removed.** The logo, the `Diff Checker` heading and the description paragraph go. A visually hidden `<h1>Diff Checker</h1>` (`.sr-only`) stays for screen readers and SEO.
+- **Mode switch** becomes a compact segmented control: `Text` | `Notebook`.
+  - Each label gets a small inline SVG line icon.
+  - The selected segment is filled with `var(--accent)` and shows white text.
+  - No emoji, dot or "ACTIVE" badge.
+  - It keeps `role="tablist"`/`role="tab"` and `aria-selected`.
+  - It's left-aligned at the top of `<main>` and stays on one line at 375 px.
+- **Footer**
+  - Desktop: one row with `© {year} Ujjwal Chowdhury · Runs entirely in your browser` on the left and `Hire Me · Anurup · Source · Support my work` (with the existing heart icon) on the right.
+  - Under 768 px: the two groups stack, centred.
+  - The decorative `::before` bar is removed.
+  - The link targets, `target`/`rel` attributes and `data-testid="support-link-footer"` don't change.
+- **Header** unchanged.
+
 ## Testing
 
 - **Unit:** `pairHunkRows`.
@@ -87,6 +105,12 @@ He chose (2026-11-02):
   - The notebook toggle switches cell diffs between `SplitHunks` and unified.
   - A single notebook shows the hint and no error banner.
   - Adding the second notebook shows the diff.
+- **e2e (section 5):**
+  - No intro paragraph.
+  - A hidden `h1` exists.
+  - The mode tabs are named `Text` and `Notebook`, and their labels don't wrap at 375 px.
+  - At 1280 px, the footer's Hire Me, Anurup, Source and Support links share one row.
+  - axe still passes in light and dark themes.
 - **Updated:** `features.spec.ts` "mobile layout hides side-by-side…" becomes "mobile layout shows the view toggle and folded menu". The old assertion contradicts requirement 1.
 - **Gate:** lint, typecheck, unit, perf, build, size (≤ 250 KB initial JS), e2e on all projects, axe accessibility checks.
 
