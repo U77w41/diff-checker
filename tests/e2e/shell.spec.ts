@@ -164,4 +164,39 @@ test.describe('Branded shell and header/footer', () => {
       expect(height).toBeLessThanOrEqual(48);
     }
   });
+
+  test('footer is one row on desktop', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Desktop only');
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('./');
+    const footer = page.locator('footer.site-footer');
+    await expect(footer).toContainText('Runs entirely in your browser');
+    const links: [string, string][] = [
+      ['Hire Me', 'https://u77w41.github.io/resume/'],
+      ['Anurup', 'https://u77w41.github.io/anurup/'],
+      ['Source', 'https://github.com/U77w41/diff-checker'],
+      ['Support my work', 'https://u77w41.github.io/support-my-work/']
+    ];
+    const tops: number[] = [];
+    for (const [name, href] of links) {
+      const link = footer.getByRole('link', { name, exact: true });
+      await expect(link).toHaveAttribute('href', href);
+      tops.push((await link.boundingBox())!.y);
+    }
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(4);
+    const meta = await footer.locator('.footer-meta').boundingBox();
+    expect(Math.abs(meta!.y - tops[0]!)).toBeLessThanOrEqual(8);
+  });
+
+  test('footer stacks centred on mobile', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'Mobile only');
+    await page.goto('./');
+    const meta = page.locator('.footer-meta');
+    const nav = page.locator('footer .footer-nav');
+    await expect(meta).toHaveCSS('text-align', 'center');
+    await expect(nav).toHaveCSS('justify-content', 'center');
+    const metaBox = await meta.boundingBox();
+    const navBox = await nav.boundingBox();
+    expect(navBox!.y).toBeGreaterThanOrEqual(metaBox!.y + metaBox!.height - 1);
+  });
 });

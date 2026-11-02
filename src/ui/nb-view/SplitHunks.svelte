@@ -108,14 +108,15 @@
     min-width: 0;
   }
 
+  /* Body-colour text on tinted rows keeps AA contrast in both themes; tint + marks carry meaning. */
   .is-del {
     background: var(--diff-del-bg);
-    color: var(--diff-del-text);
+    color: var(--text-main);
   }
 
   .is-add {
     background: var(--diff-add-bg);
-    color: var(--diff-add-text);
+    color: var(--text-main);
   }
 
   .is-empty {

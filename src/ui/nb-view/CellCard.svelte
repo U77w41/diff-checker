@@ -404,8 +404,8 @@
   }
 
   .badge-selected {
-    background: var(--focus-ring);
-    color: #ffffff;
+    background: var(--accent);
+    color: var(--accent-text);
     font-weight: 700;
     text-transform: uppercase;
     font-size: 0.7rem;
@@ -462,11 +462,11 @@
   }
   .badge-op.badge-modified {
     background: rgba(234, 179, 8, 0.15);
-    color: #b45309;
+    color: var(--text-main);
   }
   .badge-op.badge-moved {
     background: rgba(59, 130, 246, 0.15);
-    color: #2563eb;
+    color: var(--text-main);
   }
   .badge-op.badge-unchanged {
     background: var(--surface);

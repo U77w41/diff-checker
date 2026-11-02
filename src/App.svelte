@@ -916,17 +916,18 @@
 </main>
 
 <footer class="site-footer">
-  <div class="container">
+  <div class="container footer-row">
+    <p class="footer-meta">
+      <span class="copyright">{copyrightText}</span>
+      <span aria-hidden="true">·</span>
+      <span>Runs entirely in your browser</span>
+    </p>
     <nav class="footer-nav" aria-label="Footer">
       <a href="https://u77w41.github.io/resume/">Hire Me</a>
       <a href="https://u77w41.github.io/anurup/">Anurup</a>
-      <a href="https://github.com/U77w41/diff-checker" target="_blank" rel="noreferrer"
-        >Source on GitHub</a
-      >
-    </nav>
-    <p class="footer-privacy">Everything runs in your browser. Your files are never uploaded.</p>
-    <p class="footer-support">
+      <a href="https://github.com/U77w41/diff-checker" target="_blank" rel="noreferrer">Source</a>
       <a
+        class="footer-support"
         data-testid="support-link-footer"
         href="https://u77w41.github.io/support-my-work/"
         target="_blank"
@@ -971,8 +972,7 @@
         </svg>
         <span>Support my work</span>
       </a>
-    </p>
-    <p class="copyright">{copyrightText}</p>
+    </nav>
   </div>
 </footer>
 
