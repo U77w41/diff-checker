@@ -87,6 +87,27 @@
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let progressTimer: ReturnType<typeof setTimeout> | null = null;
 
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  }
+
+  let deferredInstallPrompt = $state<BeforeInstallPromptEvent | null>(null);
+  let canInstall = $state(false);
+
+  async function handleInstallApp() {
+    if (!deferredInstallPrompt) return;
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    canInstall = false;
+    try {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+    } catch {
+      // Ignore cancellation or rejection
+    }
+  }
+
   let currentSharePayload = $derived<SharePayload>({
     mode: currentMode,
     a: textA,
@@ -224,10 +245,31 @@
     };
     window.addEventListener('keydown', handleKeyDown);
 
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      Boolean((navigator as any).standalone);
+
+    function onBeforeInstallPrompt(e: Event) {
+      if (isStandalone) return;
+      e.preventDefault();
+      deferredInstallPrompt = e as BeforeInstallPromptEvent;
+      canInstall = true;
+    }
+
+    function onAppInstalled() {
+      deferredInstallPrompt = null;
+      canInstall = false;
+    }
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+
     return () => {
       cleanupTheme();
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
     };
   });
 
@@ -676,6 +718,34 @@
             </svg>
           </a>
         </li>
+        {#if canInstall}
+          <li>
+            <button
+              type="button"
+              class="install-app-btn"
+              data-testid="install-app"
+              onclick={handleInstallApp}
+              aria-label="Install Diff Checker as an app"
+              title="Install Diff Checker as an app"
+            >
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span class="nav-label">Install</span>
+            </button>
+          </li>
+        {/if}
       </ul>
     </nav>
   </div>
