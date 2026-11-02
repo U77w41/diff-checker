@@ -285,7 +285,8 @@ code,
   list-style: none;
 }
 
-.site-nav a {
+.site-nav a,
+.site-nav button.install-app-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -295,9 +296,18 @@ code,
   font-size: 15px;
   text-decoration: none;
   white-space: nowrap;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
-.site-nav a:hover {
+.site-nav a:hover,
+.site-nav button.install-app-btn:hover {
   color: var(--text-main);
   background: var(--card-background-muted);
 }
@@ -519,11 +529,13 @@ main#main {
     padding-top: 8px;
   }
 
-  .site-nav a.nav-text-desktop span.nav-label {
+  .site-nav a.nav-text-desktop span.nav-label,
+  .site-nav button.install-app-btn span.nav-label {
     display: none;
   }
 
-  .site-nav a.nav-text-desktop {
+  .site-nav a.nav-text-desktop,
+  .site-nav button.install-app-btn {
     width: 40px;
     height: 40px;
     padding: 0;
@@ -532,7 +544,8 @@ main#main {
     border: 1px solid var(--border);
   }
 
-  .site-nav a.nav-text-desktop:hover {
+  .site-nav a.nav-text-desktop:hover,
+  .site-nav button.install-app-btn:hover {
     border-color: var(--border-strong);
   }
 
