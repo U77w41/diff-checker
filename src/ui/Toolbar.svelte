@@ -268,6 +268,7 @@
             class="toggle-btn"
             class:active={options.granularity === 'word'}
             onclick={() => (options.granularity = 'word')}
+            aria-pressed={options.granularity === 'word'}
           >
             Word
           </button>
@@ -276,6 +277,7 @@
             class="toggle-btn"
             class:active={options.granularity === 'char'}
             onclick={() => (options.granularity = 'char')}
+            aria-pressed={options.granularity === 'char'}
           >
             Character
           </button>

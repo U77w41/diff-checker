@@ -44,6 +44,10 @@
   let activeChunks = $state<{ fromA: number; toA: number; fromB: number; toB: number }[]>([]);
   let currentGeneration = 0;
 
+  // Read-only editors drop contenteditable, which leaves the scroller with no
+  // focusable content. Long lines then can't be scrolled by keyboard (WCAG 2.1.1).
+  const keyboardScrollable = EditorView.contentAttributes.of({ tabindex: '0' });
+
   // Explain active ignore options in the "No differences" message
   const activeIgnoreNotes = $derived.by(() => {
     const notes: string[] = [];
@@ -78,6 +82,7 @@
         const baseExtensions: Extension[] = [
           EditorState.readOnly.of(true),
           EditorView.editable.of(false),
+          keyboardScrollable,
           lineNumbers(),
           diffCheckerTheme,
           ...langExts
@@ -125,6 +130,7 @@
             extensions: [
               EditorState.readOnly.of(true),
               EditorView.editable.of(false),
+              keyboardScrollable,
               lineNumbers(),
               diffCheckerTheme,
               EditorView.contentAttributes.of({ 'aria-label': 'Unified diff (read-only)' }),
