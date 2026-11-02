@@ -32,4 +32,32 @@ test.describe('Notebook side-by-side view', () => {
     const fits = await split.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
     expect(fits).toBe(true);
   });
+
+  test('one notebook shows a hint, not an error, then diffs when both are added', async ({
+    page
+  }) => {
+    const original = await (await page.request.get('./examples/original.ipynb')).text();
+    const modified = await (await page.request.get('./examples/modified.ipynb')).text();
+    await page.goto('./#notebook');
+    await page.locator('#input-a').fill(original);
+    await expect(page.getByRole('status').filter({ hasText: 'Add the other notebook' })).toHaveText(
+      'Add the other notebook to compare.'
+    );
+    await expect(page.getByText(/Invalid notebook JSON/)).toHaveCount(0);
+
+    await page.locator('#input-b').fill(modified);
+    await expect(page.locator('.cell-card').first()).toBeVisible();
+  });
+
+  test('switching tabs with one notebook loaded never shows the JSON error', async ({ page }) => {
+    const original = await (await page.request.get('./examples/original.ipynb')).text();
+    await page.goto('./#notebook');
+    await page.locator('#input-a').fill(original);
+    await expect(page.getByText('Add the other notebook to compare.')).toBeVisible();
+    await page.getByRole('tab', { name: /Text/ }).click();
+    await expect(page.getByText(/Invalid notebook JSON/)).toHaveCount(0);
+    await page.getByRole('tab', { name: /Notebook/ }).click();
+    await expect(page.getByText('Add the other notebook to compare.')).toBeVisible();
+    await expect(page.getByText(/Invalid notebook JSON/)).toHaveCount(0);
+  });
 });

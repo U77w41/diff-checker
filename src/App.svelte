@@ -9,7 +9,7 @@
   import InputPanel from './ui/InputPanel.svelte';
   import Toolbar from './ui/Toolbar.svelte';
   import TextView from './ui/text-view/TextView.svelte';
-  import { detectInputMode, type InputMode } from './core/detect';
+  import { detectInputMode, type InputMode, shouldWaitForSecondNotebook } from './core/detect';
   import type { NbDiffOptions, NotebookDiffResult } from './core/nb-diff/types';
   import { DEFAULT_NB_DIFF_OPTIONS } from './core/nb-diff/types';
   import NotebookView from './ui/nb-view/NotebookView.svelte';
@@ -39,6 +39,7 @@
   let selectedLanguage = $state('plain');
 
   let currentMode = $state<InputMode>('text');
+  let notebookWaiting = $state(false);
   let diffResult = $state<TextDiffResult | null>(null);
   let nbDiffResult = $state<NotebookDiffResult | null>(null);
   let nbOptions = $state<NbDiffOptions>({ ...DEFAULT_NB_DIFF_OPTIONS });
@@ -298,8 +299,22 @@
       notebookFormatError = null;
       diffErrorMessage = null;
       modeMismatchWarning = null;
+      notebookWaiting = false;
       return;
     }
+
+    // Notebook mode needs both notebooks; don't parse an empty side as JSON.
+    if (shouldWaitForSecondNotebook(currentMode, textA, textB)) {
+      diffResult = null;
+      nbDiffResult = null;
+      notebookJsonError = null;
+      notebookFormatError = null;
+      diffErrorMessage = null;
+      modeMismatchWarning = null;
+      notebookWaiting = true;
+      return;
+    }
+    notebookWaiting = false;
 
     isDiffing = true;
     slowWarning = false;
@@ -825,6 +840,10 @@
           persistSettings();
         }}
       />
+
+      {#if notebookWaiting}
+        <p class="status-banner info" role="status">Add the other notebook to compare.</p>
+      {/if}
     </div>
 
     <!-- Results Section -->
@@ -1101,6 +1120,12 @@
     background: var(--danger-bg);
     border: 1px solid var(--danger);
     color: var(--danger);
+  }
+
+  .status-banner.info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-body);
   }
 
   .status-banner.warning {

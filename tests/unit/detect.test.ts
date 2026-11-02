@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectInputMode } from '../../src/core/detect';
+import { detectInputMode, shouldWaitForSecondNotebook } from '../../src/core/detect';
 
 describe('detectInputMode', () => {
   it('detects notebook mode from .ipynb filename', () => {
@@ -33,5 +33,19 @@ describe('detectInputMode', () => {
   it('tolerates whitespace around JSON', () => {
     const padded = `  \n  {"cells": [], "nbformat": 4}  \n`;
     expect(detectInputMode(undefined, padded)).toBe('notebook');
+  });
+});
+
+describe('shouldWaitForSecondNotebook', () => {
+  const nb = '{"nbformat": 4, "cells": []}';
+  it.each([
+    ['notebook', nb, '', true],
+    ['notebook', '', nb, true],
+    ['notebook', nb, '\n  ', true],
+    ['notebook', nb, nb, false],
+    ['notebook', '', '', false],
+    ['text', 'x', '', false]
+  ] as const)('(%s, %j, %j) → %s', (mode, a, b, expected) => {
+    expect(shouldWaitForSecondNotebook(mode, a, b)).toBe(expected);
   });
 });
