@@ -8,7 +8,7 @@ Below: how to report a problem, what the app defends against, and where it can't
 
 Please don't open a public issue for security bugs.
 
-Use GitHub's private reporting instead: **Security → Report a vulnerability** on this repository. If that isn't available to you, email ujjwalchowdhury@rbihub.in with "Diff Checker security" in the subject.
+Use GitHub's private reporting instead: **Security → Report a vulnerability** on this repository. If that isn't available to you, email u77w41+diffchecker@gmail.com with "Diff Checker security" in the subject.
 
 Helpful things to include:
 
