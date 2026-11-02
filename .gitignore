@@ -11,3 +11,6 @@ test-results/
 .agents/
 skills-lock.json
 
+
+# Local agent scratch (ledgers, helper scripts)
+.superpowers/

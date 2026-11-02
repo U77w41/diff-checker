@@ -74,6 +74,7 @@ const SANITIZE_CONFIG = {
 };
 
 const ALLOWED_POSITIONS = new Set(['', 'static', 'relative']);
+const NAMED_PREFIX = 'user-content-'; // DOMPurify's SANITIZE_NAMED_PROPS prefix
 
 function createPurifier(): ReturnType<typeof DOMPurify> | null {
   if (typeof window === 'undefined') return null;
@@ -81,19 +82,39 @@ function createPurifier(): ReturnType<typeof DOMPurify> | null {
   if (typeof purify.sanitize !== 'function') return null;
 
   purify.addHook('afterSanitizeAttributes', (node) => {
-    if (!(node instanceof window.HTMLElement)) return;
+    if (!(node instanceof window.Element)) return;
 
-    // Rebuild inline styles from the parsed CSSOM. Declarations the parser can't read
-    // (including escaped names like posit\69on) are dropped rather than passed through.
+    // Rebuild inline styles from the parsed CSSOM (HTML, SVG and MathML alike). Declarations
+    // the parser can't read, including escaped names like posit\69on, are dropped.
     if (node.hasAttribute('style')) {
-      if (!ALLOWED_POSITIONS.has(node.style.position)) node.style.removeProperty('position');
-      const canonical = node.style.cssText.trim();
-      if (canonical) node.setAttribute('style', canonical);
-      else node.removeAttribute('style');
+      const style = (node as Element & { style?: CSSStyleDeclaration }).style;
+      if (!style) {
+        node.removeAttribute('style'); // no CSSOM to vet it with: fail closed
+      } else {
+        if (!ALLOWED_POSITIONS.has(style.position)) style.removeProperty('position');
+        const canonical = style.cssText.trim();
+        if (canonical) node.setAttribute('style', canonical);
+        else node.removeAttribute('style');
+      }
     }
 
-    // Links leave the app in a new tab instead of replacing the user's diff.
-    const href = node.tagName === 'A' ? node.getAttribute('href') : null;
+    // SANITIZE_NAMED_PROPS renames id/name to user-content-*; keep in-cell references working.
+    for (const attr of ['href', 'usemap']) {
+      const value = node.getAttribute(attr);
+      if (value?.startsWith('#') && value.length > 1 && !value.startsWith(`#${NAMED_PREFIX}`)) {
+        node.setAttribute(attr, `#${NAMED_PREFIX}${value.slice(1)}`);
+      }
+    }
+
+    if (node.localName !== 'a') return;
+    if (!(node instanceof window.HTMLElement)) {
+      // SVG/MathML links can't carry rel=noopener reliably; make them inert.
+      node.removeAttribute('href');
+      node.removeAttribute('xlink:href');
+      return;
+    }
+    // HTML links leave the app in a new tab instead of replacing the user's diff.
+    const href = node.getAttribute('href');
     if (href && !href.startsWith('#')) {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer');

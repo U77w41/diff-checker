@@ -335,7 +335,7 @@
       if (isMismatch) {
         modeMismatchWarning =
           'Comparing notebook with non-notebook file — comparing as plain text instead.';
-        const res = await workerManager.diffText(textA, textB, options, () => {
+        const res = await workerManager.diffText(textA, textB, $state.snapshot(options), () => {
           slowWarning = true;
         });
         diffResult = res;
@@ -344,14 +344,19 @@
       } else {
         modeMismatchWarning = null;
         if (currentMode === 'notebook') {
-          const res = await workerManager.diffNotebook(textA, textB, nbOptions, () => {
-            slowWarning = true;
-          });
+          const res = await workerManager.diffNotebook(
+            textA,
+            textB,
+            $state.snapshot(nbOptions),
+            () => {
+              slowWarning = true;
+            }
+          );
           nbDiffResult = res;
           diffResult = null;
           ariaAnnouncement = `Notebook diff: ${res.stats.modified} modified, ${res.stats.added} added, ${res.stats.deleted} deleted, ${res.stats.moved} moved`;
         } else {
-          const res = await workerManager.diffText(textA, textB, options, () => {
+          const res = await workerManager.diffText(textA, textB, $state.snapshot(options), () => {
             slowWarning = true;
           });
           diffResult = res;

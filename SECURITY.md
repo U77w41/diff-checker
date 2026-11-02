@@ -47,7 +47,7 @@ Only the live site at <https://u77w41.github.io/diff-checker/> and the `main` br
 - **Sanitised markdown.** Notebook markdown passes through DOMPurify before it reaches the page.
 - **Sandboxed HTML outputs.** Notebook HTML outputs render in an `<iframe sandbox="">` with no script, form or navigation rights.
 - **No remote images.** The CSP only allows images from this site or embedded `data:` URLs, so a notebook can't use one as a tracking pixel.
-- **Limits.** Files over 50 MB are refused, and diffs that take more than 10 seconds are cancelled.
+- **Limits.** Files over 50 MB are refused. Diffs run in a background worker, so a slow one is cancelled instead of freezing the page.
 - **Pinned dependencies.** Exact versions only, each at least 14 days old before it's adopted.
 
 ## Known limits

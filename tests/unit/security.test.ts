@@ -104,4 +104,33 @@ describe('Markdown & HTML Output Security (DOMPurify Sanitization)', () => {
   it('fails closed: escapes html when no sanitizer is available', () => {
     expect(escapeHtmlFallback('<b onclick=x>t</b>')).toBe('&lt;b onclick=x&gt;t&lt;/b&gt;');
   });
+
+  it('strips fixed positioning from SVG and MathML elements too', async () => {
+    const svg = await renderMarkdown(
+      '<svg style="position:fixed;top:0;width:100vw;z-index:9"><rect width="1" height="1"/></svg>'
+    );
+    expect(svg).not.toContain('fixed');
+    const math = await renderMarkdown('<math style="position:fixed"><mi>x</mi></math>');
+    expect(math).not.toContain('fixed');
+  });
+
+  it('removes navigation from links inside SVG', async () => {
+    const html = await renderMarkdown(
+      '<svg><a href="https://evil.example/p"><text>Continue</text></a></svg>'
+    );
+    expect(html).not.toContain('evil.example');
+  });
+
+  it('keeps in-notebook #anchor links pointing at their renamed targets', async () => {
+    const html = await renderMarkdown('<a id="sec1"></a>\n\n[jump](#sec1)');
+    expect(html).toContain('id="user-content-sec1"');
+    expect(html).toContain('href="#user-content-sec1"');
+  });
+
+  it('keeps image maps pointing at their renamed map', async () => {
+    const html = await renderMarkdown(
+      '<img usemap="#m1" src="data:image/png;base64,AA=="><map name="m1"></map>'
+    );
+    expect(html).toContain('usemap="#user-content-m1"');
+  });
 });
