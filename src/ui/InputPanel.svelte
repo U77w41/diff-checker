@@ -285,8 +285,7 @@
           class="text-input"
           placeholder="Paste original text here, or drag and drop a file..."
           bind:value={textA}
-          oninput={() => onCompare()}
-        ></textarea>
+          oninput={() => onCompare()}></textarea>
       </div>
 
       <!-- Modified (B) -->
@@ -364,8 +363,7 @@
           class="text-input"
           placeholder="Paste modified text here, or drag and drop a file..."
           bind:value={textB}
-          oninput={() => onCompare()}
-        ></textarea>
+          oninput={() => onCompare()}></textarea>
       </div>
     </div>
 

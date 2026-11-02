@@ -47,9 +47,9 @@
   const hasMetadataChange = $derived(
     Boolean(
       cellDiff.metadata &&
-        (Object.keys(cellDiff.metadata.added).length > 0 ||
-          Object.keys(cellDiff.metadata.removed).length > 0 ||
-          Object.keys(cellDiff.metadata.changed).length > 0)
+      (Object.keys(cellDiff.metadata.added).length > 0 ||
+        Object.keys(cellDiff.metadata.removed).length > 0 ||
+        Object.keys(cellDiff.metadata.changed).length > 0)
     )
   );
 
